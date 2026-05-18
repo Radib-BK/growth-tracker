@@ -293,7 +293,7 @@ function Signup() {
           </ul>
         </div>
 
-        <div>
+        <div className="space-y-2">
           <Label>
             Role
             <RequiredMark />
