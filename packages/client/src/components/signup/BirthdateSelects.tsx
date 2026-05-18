@@ -1,4 +1,11 @@
 import { dayOptions, monthOptions, yearOptions } from "@/lib/birthdate";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Props = {
   year: string;
@@ -7,6 +14,12 @@ type Props = {
   onYearChange: (v: string) => void;
   onMonthChange: (v: string) => void;
   onDayChange: (v: string) => void;
+  onYearBlur?: () => void;
+  onMonthBlur?: () => void;
+  onDayBlur?: () => void;
+  yearInvalid?: boolean;
+  monthInvalid?: boolean;
+  dayInvalid?: boolean;
 };
 
 export function BirthdateSelects({
@@ -16,6 +29,12 @@ export function BirthdateSelects({
   onYearChange,
   onMonthChange,
   onDayChange,
+  onYearBlur,
+  onMonthBlur,
+  onDayBlur,
+  yearInvalid,
+  monthInvalid,
+  dayInvalid,
 }: Props) {
   const y = year ? Number(year) : 0;
   const m = month ? Number(month) : 0;
@@ -23,58 +42,70 @@ export function BirthdateSelects({
 
   return (
     <div className="flex gap-2">
-      <select
-        data-testid="birthdate-year"
-        aria-label="Birth year"
-        value={year}
-        onChange={(e) => onYearChange(e.target.value)}
-        className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
-      >
-        <option value="" disabled>
-          Year
-        </option>
-        {yearOptions().map((yr) => (
-          <option key={yr} value={String(yr)}>
-            {yr}
-          </option>
-        ))}
-      </select>
+      <Select value={year || undefined} onValueChange={onYearChange}>
+        <SelectTrigger
+          className="w-full"
+          data-testid="birthdate-year"
+          aria-label="Birth year"
+          aria-invalid={yearInvalid}
+          onBlur={onYearBlur}
+        >
+          <SelectValue placeholder="Year" />
+        </SelectTrigger>
+        <SelectContent>
+          {yearOptions().map((yr) => (
+            <SelectItem key={yr} value={String(yr)}>
+              {yr}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      <select
-        data-testid="birthdate-month"
-        aria-label="Birth month"
-        value={month}
+      <Select
+        value={month || undefined}
+        onValueChange={onMonthChange}
         disabled={!year}
-        onChange={(e) => onMonthChange(e.target.value)}
-        className="rounded-md border border-neutral-300 px-3 py-2 text-sm disabled:opacity-50"
       >
-        <option value="" disabled>
-          Month
-        </option>
-        {monthOptions().map(({ value, label }) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger
+          className="w-full"
+          data-testid="birthdate-month"
+          aria-label="Birth month"
+          aria-invalid={monthInvalid}
+          onBlur={onMonthBlur}
+        >
+          <SelectValue placeholder="Month" />
+        </SelectTrigger>
+        <SelectContent>
+          {monthOptions().map(({ value, label }) => (
+            <SelectItem key={value} value={value}>
+              {label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
-      <select
-        data-testid="birthdate-day"
-        aria-label="Birth day"
-        value={day}
+      <Select
+        value={day || undefined}
+        onValueChange={onDayChange}
         disabled={!year || !month}
-        onChange={(e) => onDayChange(e.target.value)}
-        className="rounded-md border border-neutral-300 px-3 py-2 text-sm disabled:opacity-50"
       >
-        <option value="" disabled>
-          Day
-        </option>
-        {days.map((d) => (
-          <option key={d} value={d}>
-            {d}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger
+          className="w-full"
+          data-testid="birthdate-day"
+          aria-label="Birth day"
+          aria-invalid={dayInvalid}
+          onBlur={onDayBlur}
+        >
+          <SelectValue placeholder="Day" />
+        </SelectTrigger>
+        <SelectContent>
+          {days.map((d) => (
+            <SelectItem key={d} value={d}>
+              {d}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

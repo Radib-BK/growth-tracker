@@ -80,14 +80,24 @@ function renderSignup() {
   );
 }
 
+/** Open a shadcn Select and choose an option by visible label. */
+async function selectShadcnOption(
+  user: ReturnType<typeof userEvent.setup>,
+  triggerTestId: string,
+  optionName: string,
+) {
+  await user.click(screen.getByTestId(triggerTestId));
+  await user.click(screen.getByRole('option', { name: optionName }));
+}
+
 /** Fill the minimum required fields so the form can be submitted. */
 async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByTestId('email-input'), 'test@company.com');
   await user.type(screen.getByTestId('password-input'), 'Secret123!');
-  await user.selectOptions(screen.getByTestId('department-select'), 'Engineering');
-  await user.selectOptions(screen.getByTestId('birthdate-year'), '1995');
-  await user.selectOptions(screen.getByTestId('birthdate-month'), '06');
-  await user.selectOptions(screen.getByTestId('birthdate-day'), '15');
+  await selectShadcnOption(user, 'department-select', 'Engineering');
+  await selectShadcnOption(user, 'birthdate-year', '1995');
+  await selectShadcnOption(user, 'birthdate-month', '06');
+  await selectShadcnOption(user, 'birthdate-day', '15');
   // role defaults to LEARNER, experience defaults to JUNIOR — no extra clicks needed
 }
 
@@ -129,12 +139,12 @@ describe('Field rendering', () => {
     expect(screen.getByTestId('department-select')).toBeInTheDocument();
   });
 
-  it('renders department select with all seven options plus the placeholder', () => {
+  it('renders department select with all seven options plus the placeholder', async () => {
+    const user = userEvent.setup();
     renderSignup();
-    const select = screen.getByTestId('department-select');
-    const options = Array.from((select as HTMLSelectElement).options).map((o) => o.value);
+    await user.click(screen.getByTestId('department-select'));
     for (const dept of ['Engineering', 'Product', 'Design', 'Marketing', 'Operations', 'HR', 'Other']) {
-      expect(options).toContain(dept);
+      expect(screen.getByRole('option', { name: dept })).toBeInTheDocument();
     }
   });
 
@@ -375,10 +385,10 @@ describe('Form submission', () => {
     await user.type(screen.getByTestId('password-input'), 'Secret123!');
     await user.click(screen.getByTestId('role-manager'));
     await user.type(screen.getByTestId('team-name-input'), 'Platform Team');
-    await user.selectOptions(screen.getByTestId('department-select'), 'Product');
-    await user.selectOptions(screen.getByTestId('birthdate-year'), '1990');
-    await user.selectOptions(screen.getByTestId('birthdate-month'), '03');
-    await user.selectOptions(screen.getByTestId('birthdate-day'), '22');
+    await selectShadcnOption(user, 'department-select', 'Product');
+    await selectShadcnOption(user, 'birthdate-year', '1990');
+    await selectShadcnOption(user, 'birthdate-month', '03');
+    await selectShadcnOption(user, 'birthdate-day', '22');
     await user.click(screen.getByTestId('submit-btn'));
 
     const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);

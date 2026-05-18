@@ -1,8 +1,27 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BirthdateSelects } from "@/components/signup/BirthdateSelects";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { daysInMonth } from "@/lib/birthdate";
 import { PASSWORD_RULES } from "@/lib/passwordRules";
+import {
+  buildSignupFormValues,
+  type SignupFormState,
+  validateAllSignupFields,
+  validateSignupField,
+} from "@/lib/signupValidation";
+import { cn } from "@/lib/utils";
 import { signupFormSchema, toSignupPayload } from "@/schemas/signupSchema";
 
 const API_URL = "http://localhost:8000/api/auth/signup";
@@ -33,6 +52,14 @@ type AddressFormItem = {
   zipCode: string;
 };
 
+function RequiredMark() {
+  return (
+    <span className="ml-0.5 text-destructive" aria-hidden="true">
+      *
+    </span>
+  );
+}
+
 function Signup() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -47,12 +74,80 @@ function Signup() {
   const [birthDay, setBirthDay] = useState("");
   const [addresses, setAddresses] = useState<AddressFormItem[]>([]);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [apiError, setApiError] = useState("");
+
+  const getFormState = useCallback(
+    (): SignupFormState => ({
+      email,
+      password,
+      role,
+      teamName,
+      department,
+      experienceLevel,
+      bio,
+      birthYear,
+      birthMonth,
+      birthDay,
+      addresses: addresses.map(({ street2, zipCode, label, street1, city }) => ({
+        label,
+        street1,
+        street2,
+        city,
+        zipCode,
+      })),
+    }),
+    [
+      email,
+      password,
+      role,
+      teamName,
+      department,
+      experienceLevel,
+      bio,
+      birthYear,
+      birthMonth,
+      birthDay,
+      addresses,
+    ],
+  );
+
+  const fieldError = useCallback(
+    (field: string) => (touched[field] ? fieldErrors[field] : undefined),
+    [touched, fieldErrors],
+  );
+
+  const handleBlur = useCallback(
+    (field: string) => {
+      setTouched((prev) => ({ ...prev, [field]: true }));
+      const message = validateSignupField(getFormState(), field);
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        if (message) {
+          next[field] = message;
+        } else {
+          delete next[field];
+        }
+        return next;
+      });
+    },
+    [getFormState],
+  );
 
   function handleRoleChange(newRole: "LEARNER" | "MANAGER") {
     setRole(newRole);
     if (newRole === "LEARNER") {
       setTeamName("");
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next.teamName;
+        return next;
+      });
+      setTouched((prev) => {
+        const next = { ...prev };
+        delete next.teamName;
+        return next;
+      });
     }
   }
 
@@ -106,89 +201,81 @@ function Signup() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setApiError("");
-    setFieldErrors({});
 
-    const result = signupFormSchema.safeParse({
-      email,
-      password,
-      role,
-      department: department || undefined,
-      experienceLevel,
-      teamName: role === "MANAGER" ? teamName : undefined,
-      bio: bio || undefined,
-      birthYear,
-      birthMonth,
-      birthDay,
-      addresses: addresses.map(({ id: _id, isOpen: _isOpen, street2, zipCode, ...rest }) => ({
-        ...rest,
-        ...(street2.trim() ? { street2: street2.trim() } : {}),
-        zipCode: Number(zipCode),
-      })),
-    });
-
-    if (!result.success) {
-      const errs: Record<string, string> = {};
-      for (const issue of result.error.issues) {
-        const key = String(issue.path[0] ?? "form");
-        errs[key] = issue.message;
-      }
+    const errs = validateAllSignupFields(getFormState());
+    if (Object.keys(errs).length > 0) {
       setFieldErrors(errs);
+      setTouched((prev) => ({
+        ...prev,
+        ...Object.fromEntries(Object.keys(errs).map((key) => [key, true])),
+      }));
       return;
     }
+
+    const formData = signupFormSchema.parse(buildSignupFormValues(getFormState()));
 
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(toSignupPayload(result.data)),
+      body: JSON.stringify(toSignupPayload(formData)),
     });
 
-    const data = await res.json();
+    const responseData = await res.json();
     if (!res.ok) {
-      setApiError(data.message ?? "Signup failed");
+      setApiError(responseData.message ?? "Signup failed");
       return;
     }
 
-    localStorage.setItem("accessToken", data.accessToken);
+    localStorage.setItem("accessToken", responseData.accessToken);
     navigate("/");
   }
 
   return (
     <div className="w-full max-w-lg px-6 py-8">
-      <h1 className="mb-6 font-semibold text-2xl text-neutral-900">Create account</h1>
+      <h1 className="mb-6 font-semibold text-2xl text-foreground">Create Account</h1>
 
       <form data-testid="signup-form" onSubmit={handleSubmit} className="space-y-5">
-        <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-neutral-700">
+        <div className="space-y-2">
+          <Label htmlFor="email">
             Email
-          </label>
-          <input
+            <RequiredMark />
+          </Label>
+          <Input
             id="email"
             type="email"
             autoComplete="email"
+            required
             data-testid="email-input"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            onBlur={() => handleBlur("email")}
+            aria-invalid={!!fieldError("email")}
           />
-          {fieldErrors.email && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
+          {fieldError("email") && (
+            <p className="text-sm text-destructive">{fieldError("email")}</p>
           )}
         </div>
 
-        <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-medium text-neutral-700">
+        <div className="space-y-2">
+          <Label htmlFor="password">
             Password
-          </label>
-          <input
+            <RequiredMark />
+          </Label>
+          <Input
             id="password"
             type="password"
             autoComplete="new-password"
+            required
             data-testid="password-input"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            onBlur={() => handleBlur("password")}
+            aria-invalid={!!fieldError("password")}
           />
+          {fieldError("password") && (
+            <p className="text-sm text-destructive">{fieldError("password")}</p>
+          )}
           <ul className="mt-2 space-y-1">
             {PASSWORD_RULES.map(({ id, test, label }) => {
               const met = test(password);
@@ -197,7 +284,7 @@ function Signup() {
                   key={id}
                   data-testid={`password-rule-${id}`}
                   data-met={met ? "true" : "false"}
-                  className={met ? "text-green-600 text-sm" : "text-neutral-500 text-sm"}
+                  className={cn("text-sm", met ? "text-green-600" : "text-muted-foreground")}
                 >
                   {label}
                 </li>
@@ -207,141 +294,170 @@ function Signup() {
         </div>
 
         <div>
-          <span className="mb-2 block text-sm font-medium text-neutral-700">Role</span>
-          <div className="flex gap-2">
-            <label className="flex-1 cursor-pointer">
-              <input
-                type="radio"
-                name="role"
+          <Label>
+            Role
+            <RequiredMark />
+          </Label>
+          <RadioGroup
+            value={role}
+            onValueChange={(v) => handleRoleChange(v as "LEARNER" | "MANAGER")}
+            className="flex gap-2"
+          >
+            <div className="relative flex-1">
+              <RadioGroupItem
                 value="LEARNER"
+                id="role-learner"
                 data-testid="role-learner"
-                checked={role === "LEARNER"}
-                onChange={() => handleRoleChange("LEARNER")}
-                className="sr-only"
+                className="absolute size-0 opacity-0"
               />
-              <span
-                className={`block rounded-md border px-4 py-2 text-center text-sm ${
+              <Label
+                htmlFor="role-learner"
+                className={cn(
+                  "flex h-9 w-full cursor-pointer items-center justify-center rounded-md border px-4 text-sm font-medium transition-colors",
                   role === "LEARNER"
-                    ? "border-neutral-900 bg-neutral-900 text-white"
-                    : "border-neutral-300 bg-white text-neutral-700"
-                }`}
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-input bg-background text-foreground",
+                )}
               >
                 Learner
-              </span>
-            </label>
-            <label className="flex-1 cursor-pointer">
-              <input
-                type="radio"
-                name="role"
+              </Label>
+            </div>
+            <div className="relative flex-1">
+              <RadioGroupItem
                 value="MANAGER"
+                id="role-manager"
                 data-testid="role-manager"
-                checked={role === "MANAGER"}
-                onChange={() => handleRoleChange("MANAGER")}
-                className="sr-only"
+                className="absolute size-0 opacity-0"
               />
-              <span
-                className={`block rounded-md border px-4 py-2 text-center text-sm ${
+              <Label
+                htmlFor="role-manager"
+                className={cn(
+                  "flex h-9 w-full cursor-pointer items-center justify-center rounded-md border px-4 text-sm font-medium transition-colors",
                   role === "MANAGER"
-                    ? "border-neutral-900 bg-neutral-900 text-white"
-                    : "border-neutral-300 bg-white text-neutral-700"
-                }`}
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-input bg-background text-foreground",
+                )}
               >
                 Manager
-              </span>
-            </label>
-          </div>
+              </Label>
+            </div>
+          </RadioGroup>
         </div>
 
         {role === "MANAGER" && (
-          <div>
-            <label htmlFor="teamName" className="mb-1 block text-sm font-medium text-neutral-700">
-              Team name
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="teamName">Team name</Label>
+            <Input
               id="teamName"
               type="text"
               data-testid="team-name-input"
               value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+              onBlur={() => handleBlur("teamName")}
+              aria-invalid={!!fieldError("teamName")}
             />
-            {fieldErrors.teamName && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.teamName}</p>
+            {fieldError("teamName") && (
+              <p className="text-sm text-destructive">{fieldError("teamName")}</p>
             )}
           </div>
         )}
 
-        <div>
-          <label htmlFor="department" className="mb-1 block text-sm font-medium text-neutral-700">
+        <div className="space-y-2">
+          <Label htmlFor="department">
             Department
-          </label>
-          <select
-            id="department"
-            data-testid="department-select"
-            value={department}
-            onChange={(e) => setDepartment(e.target.value)}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            <RequiredMark />
+          </Label>
+          <Select
+            value={department || undefined}
+            onValueChange={(v) => {
+              setDepartment(v);
+              if (touched.department) {
+                handleBlur("department");
+              }
+            }}
+            onOpenChange={(open) => {
+              if (!open) handleBlur("department");
+            }}
           >
-            <option value="" disabled>
-              Select department
-            </option>
-            {DEPARTMENTS.map((dept) => (
-              <option key={dept} value={dept}>
-                {dept}
-              </option>
-            ))}
-          </select>
-          {fieldErrors.department && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.department}</p>
+            <SelectTrigger
+              id="department"
+              className="w-full"
+              data-testid="department-select"
+              aria-invalid={!!fieldError("department")}
+            >
+              <SelectValue placeholder="Select department" />
+            </SelectTrigger>
+            <SelectContent>
+              {DEPARTMENTS.map((dept) => (
+                <SelectItem key={dept} value={dept}>
+                  {dept}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {fieldError("department") && (
+            <p className="text-sm text-destructive">{fieldError("department")}</p>
           )}
         </div>
 
-        <div>
-          <span className="mb-2 block text-sm font-medium text-neutral-700">Experience level</span>
-          <div className="space-y-2">
+        <div className="space-y-2">
+          <Label>
+            Experience level
+            <RequiredMark />
+          </Label>
+          <RadioGroup
+            value={experienceLevel}
+            onValueChange={(v) => setExperienceLevel(v as "JUNIOR" | "MID" | "SENIOR")}
+            className="space-y-2"
+          >
             {EXPERIENCE_LEVELS.map(({ value, label, description }) => (
-              <label
+              <Label
                 key={value}
-                className="flex cursor-pointer items-start gap-3 rounded-md border border-neutral-200 p-3"
+                htmlFor={`experience-${value.toLowerCase()}`}
+                className="flex cursor-pointer items-start gap-3 rounded-md border border-input p-3 has-data-[state=checked]:border-primary"
               >
-                <input
-                  type="radio"
-                  name="experienceLevel"
+                <RadioGroupItem
                   value={value}
+                  id={`experience-${value.toLowerCase()}`}
                   data-testid={`experience-${value.toLowerCase()}`}
-                  checked={experienceLevel === value}
-                  onChange={() => setExperienceLevel(value)}
                   className="mt-1"
                 />
                 <span>
-                  <span className="block text-sm font-medium text-neutral-900">{label}</span>
-                  <span className="block text-xs text-neutral-500">{description}</span>
+                  <span className="block text-sm font-medium">{label}</span>
+                  <span className="block text-xs text-muted-foreground">{description}</span>
                 </span>
-              </label>
+              </Label>
             ))}
-          </div>
+          </RadioGroup>
         </div>
 
-        <div>
-          <label htmlFor="bio" className="mb-1 block text-sm font-medium text-neutral-700">
-            Bio <span className="text-neutral-400">(optional)</span>
-          </label>
-          <textarea
+        <div className="space-y-2">
+          <Label htmlFor="bio">
+            Bio <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <Textarea
             id="bio"
             data-testid="bio-input"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
+            onBlur={() => handleBlur("bio")}
             maxLength={250}
             rows={3}
-            className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
+            aria-invalid={!!fieldError("bio")}
           />
-          <p data-testid="bio-char-count" className="mt-1 text-xs text-neutral-500">
+          {fieldError("bio") && (
+            <p className="text-sm text-destructive">{fieldError("bio")}</p>
+          )}
+          <p data-testid="bio-char-count" className="text-xs text-muted-foreground">
             {bio.length} / 250
           </p>
         </div>
 
-        <div>
-          <span className="mb-2 block text-sm font-medium text-neutral-700">Birthdate</span>
+        <div className="space-y-2">
+          <Label>
+            Birthdate
+            <RequiredMark />
+          </Label>
           <BirthdateSelects
             year={birthYear}
             month={birthMonth}
@@ -349,102 +465,107 @@ function Signup() {
             onYearChange={handleYearChange}
             onMonthChange={handleMonthChange}
             onDayChange={setBirthDay}
+            onYearBlur={() => handleBlur("birthYear")}
+            onMonthBlur={() => handleBlur("birthMonth")}
+            onDayBlur={() => handleBlur("birthDay")}
+            yearInvalid={!!fieldError("birthYear")}
+            monthInvalid={!!fieldError("birthMonth")}
+            dayInvalid={!!fieldError("birthDay")}
           />
-          {fieldErrors.birthDay && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.birthDay}</p>
+          {(fieldError("birthYear") ||
+            fieldError("birthMonth") ||
+            fieldError("birthDay")) && (
+            <p className="text-sm text-destructive">
+              {fieldError("birthYear") ??
+                fieldError("birthMonth") ??
+                fieldError("birthDay")}
+            </p>
           )}
         </div>
 
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-medium text-neutral-700">
-              Addresses <span className="text-neutral-400">(optional)</span>
-            </span>
-            <button
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label>
+              Addresses <span className="font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <Button
               type="button"
+              variant="link"
               data-testid="add-address-btn"
               onClick={addAddress}
-              className="text-sm text-neutral-700 underline"
+              className="h-auto p-0"
             >
               Add an address
-            </button>
+            </Button>
           </div>
 
           {addresses.map((addr) => (
             <div
               key={addr.id}
               data-testid="address-group"
-              className="mb-3 rounded-md border border-neutral-200"
+              className="rounded-md border border-input"
             >
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => toggleAddress(addr.id)}
-                className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-neutral-700"
+                className="flex h-auto w-full items-center justify-between rounded-none px-3 py-2 font-medium"
               >
                 {addr.label || "New address"}
                 <span>{addr.isOpen ? "−" : "+"}</span>
-              </button>
-              <div className={addr.isOpen ? "block" : "hidden"}>
-                <div className="space-y-3 px-3 pb-3">
-                  <input
-                    type="text"
-                    placeholder="Label (e.g. Home)"
-                    data-testid="address-label-input"
-                    value={addr.label}
-                    onChange={(e) => updateAddress(addr.id, "label", e.target.value)}
-                    className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Street address"
-                    data-testid="address-street1-input"
-                    value={addr.street1}
-                    onChange={(e) => updateAddress(addr.id, "street1", e.target.value)}
-                    className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-                  />
-                  <input
-                    type="text"
-                    placeholder="City"
-                    data-testid="address-city-input"
-                    value={addr.city}
-                    onChange={(e) => updateAddress(addr.id, "city", e.target.value)}
-                    className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-                  />
-                  <input
-                    type="number"
-                    placeholder="ZIP code"
-                    data-testid="address-zip-input"
-                    value={addr.zipCode}
-                    onChange={(e) => updateAddress(addr.id, "zipCode", e.target.value)}
-                    className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm"
-                  />
-                  <button
-                    type="button"
-                    data-testid="remove-address-btn"
-                    onClick={() => removeAddress(addr.id)}
-                    className="text-sm text-red-600"
-                  >
-                    Remove address
-                  </button>
-                </div>
+              </Button>
+              <div className={cn("space-y-3 px-3 pb-3", !addr.isOpen && "hidden")}>
+                <Input
+                  type="text"
+                  placeholder="Label (e.g. Home)"
+                  data-testid="address-label-input"
+                  value={addr.label}
+                  onChange={(e) => updateAddress(addr.id, "label", e.target.value)}
+                />
+                <Input
+                  type="text"
+                  placeholder="Street address"
+                  data-testid="address-street1-input"
+                  value={addr.street1}
+                  onChange={(e) => updateAddress(addr.id, "street1", e.target.value)}
+                />
+                <Input
+                  type="text"
+                  placeholder="City"
+                  data-testid="address-city-input"
+                  value={addr.city}
+                  onChange={(e) => updateAddress(addr.id, "city", e.target.value)}
+                />
+                <Input
+                  type="number"
+                  placeholder="ZIP code"
+                  data-testid="address-zip-input"
+                  value={addr.zipCode}
+                  onChange={(e) => updateAddress(addr.id, "zipCode", e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="link"
+                  data-testid="remove-address-btn"
+                  onClick={() => removeAddress(addr.id)}
+                  className="h-auto p-0 text-destructive"
+                >
+                  Remove address
+                </Button>
               </div>
             </div>
           ))}
         </div>
 
         {apiError && (
-          <p data-testid="error-message" className="text-sm text-red-600">
+          <p data-testid="error-message" className="text-sm text-destructive">
             {apiError}
           </p>
         )}
 
-        <button
-          type="submit"
-          data-testid="submit-btn"
-          className="w-full rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white"
-        >
-          Create account
-        </button>
+        <Button type="submit" data-testid="submit-btn" className="w-full">
+          Sign Up
+        </Button>
       </form>
     </div>
   );

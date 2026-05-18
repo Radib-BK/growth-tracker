@@ -21,7 +21,7 @@ const addressSchema = z.object({
 
 export const signupFormSchema = z
   .object({
-    email: z.string().email("Enter a valid email"),
+    email: z.string().min(1, "Email is required").email("Enter a valid email"),
     password: z
       .string()
       .min(8, "At least 8 characters")
