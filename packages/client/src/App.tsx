@@ -5,12 +5,14 @@ import Signup from '@/pages/Signup';
 
 function App() {
   return (
-    <div className="w-full h-dvh flex items-center justify-center bg-neutral-50">
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-      </Routes>
+    <div className="min-h-dvh w-full overflow-y-auto bg-neutral-50">
+      <div className="flex w-full justify-center px-4 py-8">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+        </Routes>
+      </div>
     </div>
   );
 }
