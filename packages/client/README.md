@@ -1,4 +1,4 @@
-# dsissue-react
+# growth-tracker-react
 
 A minimal React + TypeScript + Vite starter, preconfigured with Tailwind CSS v4, shadcn/ui, the React Compiler, ESLint, and Prettier.
 
