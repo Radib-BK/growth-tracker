@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BirthdateSelects } from "@/components/signup/BirthdateSelects";
 import { Button } from "@/components/ui/button";
@@ -71,8 +71,6 @@ function Signup() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [apiError, setApiError] = useState("");
-  const departmentRef = useRef(department);
-  departmentRef.current = department;
 
   function setDepartmentError(value: string) {
     const message = validateDepartmentField(value);
@@ -339,7 +337,7 @@ function Signup() {
 
         {role === "MANAGER" && (
           <div className="space-y-2">
-            <Label htmlFor="teamName">Team name</Label>
+            <Label htmlFor="teamName">Team name<RequiredMark /></Label>
             <Input
               id="teamName"
               type="text"
@@ -363,7 +361,6 @@ function Signup() {
           <Select
             value={department || undefined}
             onValueChange={(v) => {
-              departmentRef.current = v;
               setDepartment(v);
               setTouched((prev) => ({ ...prev, department: true }));
               setDepartmentError(v);
@@ -371,7 +368,7 @@ function Signup() {
             onOpenChange={(open) => {
               if (!open) {
                 setTouched((prev) => ({ ...prev, department: true }));
-                if (!departmentRef.current) {
+                if (!department) {
                   setDepartmentError("");
                 }
               }
@@ -390,12 +387,6 @@ function Signup() {
                 <SelectItem
                   key={dept}
                   value={dept}
-                  onPointerUp={() => {
-                    departmentRef.current = dept;
-                    setDepartment(dept);
-                    setTouched((prev) => ({ ...prev, department: true }));
-                    setDepartmentError(dept);
-                  }}
                 >
                   {dept}
                 </SelectItem>
