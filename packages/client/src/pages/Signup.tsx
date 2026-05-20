@@ -1,5 +1,5 @@
-import { useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { BirthdateSelects } from "@/components/signup/BirthdateSelects";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,19 +22,14 @@ import {
   validateSignupField,
 } from "@/lib/signupValidation";
 import { cn } from "@/lib/utils";
-import { signupFormSchema, toSignupPayload } from "@/schemas/signupSchema";
+import {
+  DEPARTMENTS,
+  signupFormSchema,
+  toSignupPayload,
+  validateDepartmentField,
+} from "@/schemas/signupSchema";
 
 const API_URL = "http://localhost:8000/api/auth/signup";
-
-const DEPARTMENTS = [
-  "Engineering",
-  "Product",
-  "Design",
-  "Marketing",
-  "Operations",
-  "HR",
-  "Other",
-] as const;
 
 const EXPERIENCE_LEVELS = [
   { value: "JUNIOR" as const, label: "Junior", description: "0–2 years of experience" },
@@ -76,9 +71,24 @@ function Signup() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [apiError, setApiError] = useState("");
+  const departmentRef = useRef(department);
+  departmentRef.current = department;
 
-  const getFormState = useCallback(
-    (): SignupFormState => ({
+  function setDepartmentError(value: string) {
+    const message = validateDepartmentField(value);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (message) {
+        next.department = message;
+      } else {
+        delete next.department;
+      }
+      return next;
+    });
+  }
+
+  function getFormState(): SignupFormState {
+    return {
       email,
       password,
       role,
@@ -96,43 +106,26 @@ function Signup() {
         city,
         zipCode,
       })),
-    }),
-    [
-      email,
-      password,
-      role,
-      teamName,
-      department,
-      experienceLevel,
-      bio,
-      birthYear,
-      birthMonth,
-      birthDay,
-      addresses,
-    ],
-  );
+    };
+  }
 
-  const fieldError = useCallback(
-    (field: string) => (touched[field] ? fieldErrors[field] : undefined),
-    [touched, fieldErrors],
-  );
+  function fieldError(field: string) {
+    return touched[field] ? fieldErrors[field] : undefined;
+  }
 
-  const handleBlur = useCallback(
-    (field: string) => {
-      setTouched((prev) => ({ ...prev, [field]: true }));
-      const message = validateSignupField(getFormState(), field);
-      setFieldErrors((prev) => {
-        const next = { ...prev };
-        if (message) {
-          next[field] = message;
-        } else {
-          delete next[field];
-        }
-        return next;
-      });
-    },
-    [getFormState],
-  );
+  function handleBlur(field: string) {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    const message = validateSignupField(getFormState(), field);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (message) {
+        next[field] = message;
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+  }
 
   function handleRoleChange(newRole: "LEARNER" | "MANAGER") {
     setRole(newRole);
@@ -370,13 +363,18 @@ function Signup() {
           <Select
             value={department || undefined}
             onValueChange={(v) => {
+              departmentRef.current = v;
               setDepartment(v);
-              if (touched.department) {
-                handleBlur("department");
-              }
+              setTouched((prev) => ({ ...prev, department: true }));
+              setDepartmentError(v);
             }}
             onOpenChange={(open) => {
-              if (!open) handleBlur("department");
+              if (!open) {
+                setTouched((prev) => ({ ...prev, department: true }));
+                if (!departmentRef.current) {
+                  setDepartmentError("");
+                }
+              }
             }}
           >
             <SelectTrigger
@@ -389,7 +387,16 @@ function Signup() {
             </SelectTrigger>
             <SelectContent>
               {DEPARTMENTS.map((dept) => (
-                <SelectItem key={dept} value={dept}>
+                <SelectItem
+                  key={dept}
+                  value={dept}
+                  onPointerUp={() => {
+                    departmentRef.current = dept;
+                    setDepartment(dept);
+                    setTouched((prev) => ({ ...prev, department: true }));
+                    setDepartmentError(dept);
+                  }}
+                >
                   {dept}
                 </SelectItem>
               ))}
@@ -567,6 +574,13 @@ function Signup() {
           Sign Up
         </Button>
       </form>
+
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        Already have an account?{" "}
+        <Link to="/login" className="font-medium text-foreground underline-offset-4 hover:underline">
+          Log in
+        </Link>
+      </p>
     </div>
   );
 }

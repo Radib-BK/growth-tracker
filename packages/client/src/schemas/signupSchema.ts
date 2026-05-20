@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { isValidBirthdate, toBirthdateString } from "@/lib/birthdate";
 
-const DEPARTMENTS = [
+export const DEPARTMENTS = [
   "Engineering",
   "Product",
   "Design",
@@ -10,6 +10,8 @@ const DEPARTMENTS = [
   "HR",
   "Other",
 ] as const;
+
+const departmentFieldSchema = z.enum(DEPARTMENTS, { message: "Select a department" });
 
 const addressSchema = z.object({
   label: z.string().min(1).max(100),
@@ -47,6 +49,13 @@ export const signupFormSchema = z
   });
 
 export type SignupFormValues = z.infer<typeof signupFormSchema>;
+
+export function validateDepartmentField(value: string): string | undefined {
+  if (!value) return "Select a department";
+  const result = departmentFieldSchema.safeParse(value);
+  if (!result.success) return result.error.issues[0]?.message;
+  return undefined;
+}
 
 export function toSignupPayload(data: SignupFormValues) {
   const birthdate = toBirthdateString(data.birthYear, data.birthMonth, data.birthDay);

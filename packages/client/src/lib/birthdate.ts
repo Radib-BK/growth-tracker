@@ -1,4 +1,4 @@
-export const BIRTH_YEAR_START = 1940;
+export const BIRTH_YEAR_START = 1960;
 
 export function getMaxBirthYear(): number {
   return new Date().getFullYear() - 10;
@@ -16,7 +16,6 @@ export function monthOptions(): { value: string; label: string }[] {
   });
 }
 
-/** month is 1–12 */
 export function daysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
 }
@@ -30,7 +29,6 @@ export function toBirthdateString(year: string, month: string, day: string): str
   return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 
-/** Returns true if YYYY-MM-DD is a real calendar date */
 export function isValidBirthdate(year: string, month: string, day: string): boolean {
   if (!year || !month || !day) return false;
   const y = Number(year);

@@ -1,4 +1,6 @@
-import { signupFormSchema } from "@/schemas/signupSchema";
+import { signupFormSchema, validateDepartmentField } from "@/schemas/signupSchema";
+
+export { validateDepartmentField };
 
 export type SignupFormState = {
   email: string;
