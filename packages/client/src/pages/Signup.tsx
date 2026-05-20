@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BirthdateSelects } from "@/components/signup/BirthdateSelects";
 import { Button } from "@/components/ui/button";
@@ -15,18 +15,16 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { daysInMonth } from "@/lib/birthdate";
 import { PASSWORD_RULES } from "@/lib/passwordRules";
+import { useSignupFieldValidation } from "@/hooks/useSignupFieldValidation";
 import {
   buildSignupFormValues,
   type SignupFormState,
-  validateAllSignupFields,
-  validateSignupField,
 } from "@/lib/signupValidation";
 import { cn } from "@/lib/utils";
 import {
   DEPARTMENTS,
   signupFormSchema,
   toSignupPayload,
-  validateDepartmentField,
 } from "@/schemas/signupSchema";
 
 const API_URL = "http://localhost:8000/api/auth/signup";
@@ -68,97 +66,56 @@ function Signup() {
   const [birthMonth, setBirthMonth] = useState("");
   const [birthDay, setBirthDay] = useState("");
   const [addresses, setAddresses] = useState<AddressFormItem[]>([]);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [apiError, setApiError] = useState("");
 
-  function setDepartmentError(value: string) {
-    const message = validateDepartmentField(value);
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      if (message) {
-        next.department = message;
-      } else {
-        delete next.department;
-      }
-      return next;
-    });
-  }
+  const getFormState = useCallback((): SignupFormState => ({
+    email,
+    password,
+    role,
+    teamName,
+    department,
+    experienceLevel,
+    bio,
+    birthYear,
+    birthMonth,
+    birthDay,
+    addresses: addresses.map(({ street2, zipCode, label, street1, city }) => ({
+      label,
+      street1,
+      street2,
+      city,
+      zipCode,
+    })),
+  }), [
+    email,
+    password,
+    role,
+    teamName,
+    department,
+    experienceLevel,
+    bio,
+    birthYear,
+    birthMonth,
+    birthDay,
+    addresses,
+  ]);
 
-  function getFormState(): SignupFormState {
-    return {
-      email,
-      password,
-      role,
-      teamName,
-      department,
-      experienceLevel,
-      bio,
-      birthYear,
-      birthMonth,
-      birthDay,
-      addresses: addresses.map(({ street2, zipCode, label, street1, city }) => ({
-        label,
-        street1,
-        street2,
-        city,
-        zipCode,
-      })),
-    };
-  }
-
-  function fieldError(field: string) {
-    return touched[field] ? fieldErrors[field] : undefined;
-  }
-
-  function addressFieldError(index: number, field: string) {
-    const key = `addresses.${index}.${field}`;
-    return touched[key] ? fieldErrors[key] : undefined;
-  }
-
-  function handleAddressBlur(index: number, field: string) {
-    const key = `addresses.${index}.${field}`;
-    setTouched((prev) => ({ ...prev, [key]: true }));
-    const message = validateSignupField(getFormState(), key);
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      if (message) {
-        next[key] = message;
-      } else {
-        delete next[key];
-      }
-      return next;
-    });
-  }
-
-  function handleBlur(field: string) {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    const message = validateSignupField(getFormState(), field);
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      if (message) {
-        next[field] = message;
-      } else {
-        delete next[field];
-      }
-      return next;
-    });
-  }
+  const {
+    fieldError,
+    addressFieldError,
+    handleBlur,
+    handleAddressBlur,
+    scheduleFieldValidation,
+    setDepartmentError,
+    validateAllAndTouch,
+    clearField,
+  } = useSignupFieldValidation(getFormState);
 
   function handleRoleChange(newRole: "LEARNER" | "MANAGER") {
     setRole(newRole);
     if (newRole === "LEARNER") {
       setTeamName("");
-      setFieldErrors((prev) => {
-        const next = { ...prev };
-        delete next.teamName;
-        return next;
-      });
-      setTouched((prev) => {
-        const next = { ...prev };
-        delete next.teamName;
-        return next;
-      });
+      clearField("teamName");
     }
   }
 
@@ -166,6 +123,9 @@ function Signup() {
     setBirthYear(v);
     setBirthMonth("");
     setBirthDay("");
+    scheduleFieldValidation("birthYear");
+    scheduleFieldValidation("birthMonth");
+    scheduleFieldValidation("birthDay");
   }
 
   function handleMonthChange(v: string) {
@@ -174,7 +134,21 @@ function Signup() {
       const max = daysInMonth(Number(birthYear), Number(v));
       if (birthDay && Number(birthDay) > max) {
         setBirthDay("");
+        scheduleFieldValidation("birthDay");
       }
+    }
+    scheduleFieldValidation("birthMonth");
+  }
+
+  function updateAddressField(
+    id: string,
+    index: number,
+    field: keyof AddressFormItem,
+    value: string | boolean,
+  ) {
+    updateAddress(id, field, value);
+    if (typeof value === "string" && field !== "street2" && field !== "isOpen") {
+      scheduleFieldValidation(`addresses.${index}.${field}`);
     }
   }
 
@@ -213,13 +187,8 @@ function Signup() {
     e.preventDefault();
     setApiError("");
 
-    const errs = validateAllSignupFields(getFormState());
+    const errs = validateAllAndTouch();
     if (Object.keys(errs).length > 0) {
-      setFieldErrors(errs);
-      setTouched((prev) => ({
-        ...prev,
-        ...Object.fromEntries(Object.keys(errs).map((key) => [key, true])),
-      }));
       return;
     }
     
@@ -262,7 +231,10 @@ function Signup() {
             required
             data-testid="email-input"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              scheduleFieldValidation("email");
+            }}
             onBlur={() => handleBlur("email")}
             aria-invalid={!!fieldError("email")}
           />
@@ -283,7 +255,10 @@ function Signup() {
             required
             data-testid="password-input"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              scheduleFieldValidation("password");
+            }}
             onBlur={() => handleBlur("password")}
             aria-invalid={!!fieldError("password")}
           />
@@ -366,7 +341,10 @@ function Signup() {
               type="text"
               data-testid="team-name-input"
               value={teamName}
-              onChange={(e) => setTeamName(e.target.value)}
+              onChange={(e) => {
+                setTeamName(e.target.value);
+                scheduleFieldValidation("teamName");
+              }}
               onBlur={() => handleBlur("teamName")}
               aria-invalid={!!fieldError("teamName")}
             />
@@ -385,15 +363,11 @@ function Signup() {
             value={department || undefined}
             onValueChange={(v) => {
               setDepartment(v);
-              setTouched((prev) => ({ ...prev, department: true }));
               setDepartmentError(v);
             }}
             onOpenChange={(open) => {
-              if (!open) {
-                setTouched((prev) => ({ ...prev, department: true }));
-                if (!department) {
-                  setDepartmentError("");
-                }
+              if (!open && !department) {
+                setDepartmentError("");
               }
             }}
           >
@@ -460,7 +434,10 @@ function Signup() {
             id="bio"
             data-testid="bio-input"
             value={bio}
-            onChange={(e) => setBio(e.target.value)}
+            onChange={(e) => {
+              setBio(e.target.value);
+              scheduleFieldValidation("bio");
+            }}
             onBlur={() => handleBlur("bio")}
             maxLength={250}
             rows={3}
@@ -485,7 +462,10 @@ function Signup() {
             day={birthDay}
             onYearChange={handleYearChange}
             onMonthChange={handleMonthChange}
-            onDayChange={setBirthDay}
+            onDayChange={(v) => {
+              setBirthDay(v);
+              scheduleFieldValidation("birthDay");
+            }}
             onYearBlur={() => handleBlur("birthYear")}
             onMonthBlur={() => handleBlur("birthMonth")}
             onDayBlur={() => handleBlur("birthDay")}
@@ -547,7 +527,7 @@ function Signup() {
                     placeholder="e.g. Home"
                     data-testid="address-label-input"
                     value={addr.label}
-                    onChange={(e) => updateAddress(addr.id, "label", e.target.value)}
+                    onChange={(e) => updateAddressField(addr.id, index, "label", e.target.value)}
                     onBlur={() => handleAddressBlur(index, "label")}
                     aria-invalid={!!addressFieldError(index, "label")}
                   />
@@ -566,7 +546,7 @@ function Signup() {
                     placeholder="123 Main St"
                     data-testid="address-street1-input"
                     value={addr.street1}
-                    onChange={(e) => updateAddress(addr.id, "street1", e.target.value)}
+                    onChange={(e) => updateAddressField(addr.id, index, "street1", e.target.value)}
                     onBlur={() => handleAddressBlur(index, "street1")}
                     aria-invalid={!!addressFieldError(index, "street1")}
                   />
@@ -599,7 +579,7 @@ function Signup() {
                     placeholder="New York"
                     data-testid="address-city-input"
                     value={addr.city}
-                    onChange={(e) => updateAddress(addr.id, "city", e.target.value)}
+                    onChange={(e) => updateAddressField(addr.id, index, "city", e.target.value)}
                     onBlur={() => handleAddressBlur(index, "city")}
                     aria-invalid={!!addressFieldError(index, "city")}
                   />
@@ -615,10 +595,10 @@ function Signup() {
                   <Input
                     id={`address-zip-${addr.id}`}
                     type="number"
-                    placeholder="10001"
+                    placeholder="1000"
                     data-testid="address-zip-input"
                     value={addr.zipCode}
-                    onChange={(e) => updateAddress(addr.id, "zipCode", e.target.value)}
+                    onChange={(e) => updateAddressField(addr.id, index, "zipCode", e.target.value)}
                     onBlur={() => handleAddressBlur(index, "zipCode")}
                     aria-invalid={!!addressFieldError(index, "zipCode")}
                   />
