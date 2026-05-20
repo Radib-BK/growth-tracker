@@ -111,6 +111,26 @@ function Signup() {
     return touched[field] ? fieldErrors[field] : undefined;
   }
 
+  function addressFieldError(index: number, field: string) {
+    const key = `addresses.${index}.${field}`;
+    return touched[key] ? fieldErrors[key] : undefined;
+  }
+
+  function handleAddressBlur(index: number, field: string) {
+    const key = `addresses.${index}.${field}`;
+    setTouched((prev) => ({ ...prev, [key]: true }));
+    const message = validateSignupField(getFormState(), key);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (message) {
+        next[key] = message;
+      } else {
+        delete next[key];
+      }
+      return next;
+    });
+  }
+
   function handleBlur(field: string) {
     setTouched((prev) => ({ ...prev, [field]: true }));
     const message = validateSignupField(getFormState(), field);
@@ -202,9 +222,9 @@ function Signup() {
       }));
       return;
     }
-
+    
     const formData = signupFormSchema.parse(buildSignupFormValues(getFormState()));
-
+    
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -214,7 +234,10 @@ function Signup() {
 
     const responseData = await res.json();
     if (!res.ok) {
-      setApiError(responseData.message ?? "Signup failed");
+      const details = responseData.errors
+        ? Object.values(responseData.errors as Record<string, string[]>).flat().join(" ")
+        : "";
+      setApiError([responseData.message, details].filter(Boolean).join(": ") || "Signup failed");
       return;
     }
 
@@ -497,7 +520,7 @@ function Signup() {
             </Button>
           </div>
 
-          {addresses.map((addr) => (
+          {addresses.map((addr, index) => (
             <div
               key={addr.id}
               data-testid="address-group"
@@ -513,34 +536,96 @@ function Signup() {
                 <span>{addr.isOpen ? "−" : "+"}</span>
               </Button>
               <div className={cn("space-y-3 px-3 pb-3", !addr.isOpen && "hidden")}>
-                <Input
-                  type="text"
-                  placeholder="Label (e.g. Home)"
-                  data-testid="address-label-input"
-                  value={addr.label}
-                  onChange={(e) => updateAddress(addr.id, "label", e.target.value)}
-                />
-                <Input
-                  type="text"
-                  placeholder="Street address"
-                  data-testid="address-street1-input"
-                  value={addr.street1}
-                  onChange={(e) => updateAddress(addr.id, "street1", e.target.value)}
-                />
-                <Input
-                  type="text"
-                  placeholder="City"
-                  data-testid="address-city-input"
-                  value={addr.city}
-                  onChange={(e) => updateAddress(addr.id, "city", e.target.value)}
-                />
-                <Input
-                  type="number"
-                  placeholder="ZIP code"
-                  data-testid="address-zip-input"
-                  value={addr.zipCode}
-                  onChange={(e) => updateAddress(addr.id, "zipCode", e.target.value)}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor={`address-label-${addr.id}`}>
+                    Label
+                    <RequiredMark />
+                  </Label>
+                  <Input
+                    id={`address-label-${addr.id}`}
+                    type="text"
+                    placeholder="e.g. Home"
+                    data-testid="address-label-input"
+                    value={addr.label}
+                    onChange={(e) => updateAddress(addr.id, "label", e.target.value)}
+                    onBlur={() => handleAddressBlur(index, "label")}
+                    aria-invalid={!!addressFieldError(index, "label")}
+                  />
+                  {addressFieldError(index, "label") && (
+                    <p className="text-sm text-destructive">{addressFieldError(index, "label")}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`address-street1-${addr.id}`}>
+                    Street address
+                    <RequiredMark />
+                  </Label>
+                  <Input
+                    id={`address-street1-${addr.id}`}
+                    type="text"
+                    placeholder="123 Main St"
+                    data-testid="address-street1-input"
+                    value={addr.street1}
+                    onChange={(e) => updateAddress(addr.id, "street1", e.target.value)}
+                    onBlur={() => handleAddressBlur(index, "street1")}
+                    aria-invalid={!!addressFieldError(index, "street1")}
+                  />
+                  {addressFieldError(index, "street1") && (
+                    <p className="text-sm text-destructive">{addressFieldError(index, "street1")}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`address-street2-${addr.id}`}>
+                    Apt, suite, etc.{" "}
+                    <span className="font-normal text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id={`address-street2-${addr.id}`}
+                    type="text"
+                    placeholder="Apt 4B"
+                    data-testid="address-street2-input"
+                    value={addr.street2}
+                    onChange={(e) => updateAddress(addr.id, "street2", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`address-city-${addr.id}`}>
+                    City
+                    <RequiredMark />
+                  </Label>
+                  <Input
+                    id={`address-city-${addr.id}`}
+                    type="text"
+                    placeholder="New York"
+                    data-testid="address-city-input"
+                    value={addr.city}
+                    onChange={(e) => updateAddress(addr.id, "city", e.target.value)}
+                    onBlur={() => handleAddressBlur(index, "city")}
+                    aria-invalid={!!addressFieldError(index, "city")}
+                  />
+                  {addressFieldError(index, "city") && (
+                    <p className="text-sm text-destructive">{addressFieldError(index, "city")}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`address-zip-${addr.id}`}>
+                    ZIP code
+                    <RequiredMark />
+                  </Label>
+                  <Input
+                    id={`address-zip-${addr.id}`}
+                    type="number"
+                    placeholder="10001"
+                    data-testid="address-zip-input"
+                    value={addr.zipCode}
+                    onChange={(e) => updateAddress(addr.id, "zipCode", e.target.value)}
+                    onBlur={() => handleAddressBlur(index, "zipCode")}
+                    aria-invalid={!!addressFieldError(index, "zipCode")}
+                  />
+                  {addressFieldError(index, "zipCode") && (
+                    <p className="text-sm text-destructive">{addressFieldError(index, "zipCode")}</p>
+                  )}
+                </div>
                 <Button
                   type="button"
                   variant="link"

@@ -2,6 +2,10 @@ import { signupFormSchema, validateDepartmentField } from "@/schemas/signupSchem
 
 export { validateDepartmentField };
 
+function issuePathKey(path: PropertyKey[]): string {
+  return path.map(String).join(".") || "form";
+}
+
 export type SignupFormState = {
   email: string;
   password: string;
@@ -34,10 +38,12 @@ export function buildSignupFormValues(state: SignupFormState) {
     birthYear: state.birthYear,
     birthMonth: state.birthMonth,
     birthDay: state.birthDay,
-    addresses: state.addresses.map(({ street2, zipCode, ...rest }) => ({
-      ...rest,
-      ...(street2.trim() ? { street2: street2.trim() } : {}),
-      zipCode: Number(zipCode),
+    addresses: state.addresses.map(({ label, street1, street2, city, zipCode }) => ({
+      label,
+      street1,
+      street2,
+      city,
+      zipCode,
     })),
   };
 }
@@ -48,7 +54,7 @@ export function validateSignupField(
 ): string | undefined {
   const result = signupFormSchema.safeParse(buildSignupFormValues(state));
   if (result.success) return undefined;
-  return result.error.issues.find((issue) => String(issue.path[0]) === field)?.message;
+  return result.error.issues.find((issue) => issuePathKey(issue.path) === field)?.message;
 }
 
 export function validateAllSignupFields(state: SignupFormState): Record<string, string> {
@@ -57,7 +63,7 @@ export function validateAllSignupFields(state: SignupFormState): Record<string, 
 
   const errors: Record<string, string> = {};
   for (const issue of result.error.issues) {
-    const key = String(issue.path[0] ?? "form");
+    const key = issuePathKey(issue.path);
     if (!errors[key]) {
       errors[key] = issue.message;
     }

@@ -13,13 +13,74 @@ export const DEPARTMENTS = [
 
 const departmentFieldSchema = z.enum(DEPARTMENTS, { message: "Select a department" });
 
-const addressSchema = z.object({
-  label: z.string().min(1).max(100),
-  street1: z.string().min(1).max(200),
-  street2: z.string().max(200).optional(),
-  city: z.string().min(1).max(100),
-  zipCode: z.number().int().positive(),
+const addressFormInputSchema = z.object({
+  label: z.string(),
+  street1: z.string(),
+  street2: z.string(),
+  city: z.string(),
+  zipCode: z.string(),
 });
+
+export type AddressFormInput = z.infer<typeof addressFormInputSchema>;
+
+export function isBlankAddress(a: AddressFormInput) {
+  return (
+    !a.label.trim() &&
+    !a.street1.trim() &&
+    !a.street2.trim() &&
+    !a.city.trim() &&
+    !a.zipCode.trim()
+  );
+}
+
+const validatedAddressFields = z.object({
+  label: z.string().min(1, "Label is required").max(100),
+  street1: z.string().min(1, "Street address is required").max(200),
+  street2: z.string().max(200).optional(),
+  city: z.string().min(1, "City is required").max(100),
+  zipCode: z
+    .number({ invalid_type_error: "Enter a valid ZIP code" })
+    .int()
+    .positive("Enter a valid ZIP code"),
+});
+
+function validateAddressEntry(
+  addr: AddressFormInput,
+  index: number,
+  ctx: z.RefinementCtx,
+) {
+  if (isBlankAddress(addr)) return;
+
+  const result = validatedAddressFields.safeParse({
+    label: addr.label.trim(),
+    street1: addr.street1.trim(),
+    city: addr.city.trim(),
+    ...(addr.street2.trim() ? { street2: addr.street2.trim() } : {}),
+    zipCode: Number(addr.zipCode),
+  });
+
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      ctx.addIssue({
+        code: "custom",
+        message: issue.message,
+        path: ["addresses", index, ...issue.path],
+      });
+    }
+  }
+}
+
+export function normalizeAddresses(addrs: AddressFormInput[]) {
+  return addrs
+    .filter((a) => !isBlankAddress(a))
+    .map(({ street2, zipCode, label, street1, city }) => ({
+      label: label.trim(),
+      street1: street1.trim(),
+      city: city.trim(),
+      ...(street2.trim() ? { street2: street2.trim() } : {}),
+      zipCode: Number(zipCode),
+    }));
+}
 
 export const signupFormSchema = z
   .object({
@@ -37,7 +98,7 @@ export const signupFormSchema = z
     birthYear: z.string().min(1, "Select a year"),
     birthMonth: z.string().min(1, "Select a month"),
     birthDay: z.string().min(1, "Select a day"),
-    addresses: z.array(addressSchema).default([]),
+    addresses: z.array(addressFormInputSchema).default([]),
   })
   .refine((d) => d.role !== "MANAGER" || !!d.teamName?.trim(), {
     message: "Team name is required for managers",
@@ -46,6 +107,9 @@ export const signupFormSchema = z
   .refine((d) => isValidBirthdate(d.birthYear, d.birthMonth, d.birthDay), {
     message: "Invalid birthdate",
     path: ["birthDay"],
+  })
+  .superRefine((data, ctx) => {
+    data.addresses.forEach((addr, index) => validateAddressEntry(addr, index, ctx));
   });
 
 export type SignupFormValues = z.infer<typeof signupFormSchema>;
@@ -68,6 +132,6 @@ export function toSignupPayload(data: SignupFormValues) {
     birthdate,
     ...(data.role === "MANAGER" && data.teamName ? { teamName: data.teamName.trim() } : {}),
     ...(data.bio?.trim() ? { bio: data.bio.trim() } : {}),
-    addresses: data.addresses,
+    addresses: normalizeAddresses(data.addresses),
   };
 }

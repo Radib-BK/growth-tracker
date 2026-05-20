@@ -35,13 +35,30 @@ const credentialsSchema = z.object({
   password: z.string().min(8),
 });
 
-const addressSchema = z.object({
-  label:   z.string().min(1).max(100),
-  street1: z.string().min(1).max(200),
-  street2: z.string().max(200).optional(),
-  city:    z.string().min(1).max(100),
-  zipCode: z.number().int().positive(),
-});
+function isBlankAddress(value: unknown): boolean {
+  if (!value || typeof value !== "object") return true;
+  const a = value as Record<string, unknown>;
+  return (
+    !String(a.label ?? "").trim() &&
+    !String(a.street1 ?? "").trim() &&
+    !String(a.street2 ?? "").trim() &&
+    !String(a.city ?? "").trim() &&
+    !String(a.zipCode ?? "").trim()
+  );
+}
+
+const addressSchema = z
+  .object({
+    label:   z.string().min(1).max(100),
+    street1: z.string().min(1).max(200),
+    street2: z.string().max(200).optional().nullable(),
+    city:    z.string().min(1).max(100),
+    zipCode: z.coerce.number().int().positive(),
+  })
+  .transform(({ street2, ...rest }) => ({
+    ...rest,
+    ...(street2?.trim() ? { street2: street2.trim() } : {}),
+  }));
 
 const DEPARTMENTS = ["Engineering", "Product", "Design", "Marketing", "Operations", "HR", "Other"] as const;
 
@@ -55,7 +72,13 @@ const signupSchema = z
     teamName:        z.string().min(1).max(100).optional(),
     bio:             z.string().max(250).optional(),
     birthdate:       z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (expected YYYY-MM-DD)"),
-    addresses:       z.array(addressSchema).optional().default([]),
+    addresses: z
+      .preprocess(
+        (val) => (Array.isArray(val) ? val.filter((a) => !isBlankAddress(a)) : val),
+        z.array(addressSchema),
+      )
+      .optional()
+      .default([]),
   })
   .refine(data => data.role !== "MANAGER" || !!data.teamName?.trim(), {
     message: "Team name is required for managers",
