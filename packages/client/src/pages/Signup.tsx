@@ -7,6 +7,7 @@ import {
   useFieldArray,
   useForm,
   useFormState,
+  useWatch,
   type FieldPath,
 } from "react-hook-form";
 import { BirthdateSelects } from "@/components/signup/BirthdateSelects";
@@ -77,7 +78,6 @@ function Signup() {
     register,
     control,
     handleSubmit,
-    watch,
     setValue,
     trigger,
     getFieldState,
@@ -87,12 +87,10 @@ function Signup() {
 
   const { fields, append, remove } = useFieldArray({ control, name: "addresses" });
 
-  const role = watch("role");
-  const password = watch("password");
-  const bio = watch("bio");
-  const birthYear = watch("birthYear");
-  const birthMonth = watch("birthMonth");
-  const birthDay = watch("birthDay");
+  const [role, password, bio, birthYear, birthMonth, birthDay] = useWatch({
+    control,
+    name: ["role", "password", "bio", "birthYear", "birthMonth", "birthDay"],
+  });
 
   const err = (name: FieldPath<SignupFormInput>) =>
     shownFieldError(name, getFieldState, formState);
