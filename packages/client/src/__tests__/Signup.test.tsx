@@ -54,19 +54,56 @@ vi.mock('react-router-dom', async (importOriginal) => {
 });
 
 function mockFetchSuccess() {
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({
-      accessToken: 'test-access-token',
-      user: { id: '1', email: 'test@company.com' },
-    }),
+  global.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes('/check-email')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ available: true }),
+      });
+    }
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({
+        accessToken: 'test-access-token',
+        user: { id: '1', email: 'test@company.com' },
+      }),
+    });
   });
 }
 
 function mockFetchError(message = 'Email already in use') {
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: false,
-    json: async () => ({ message }),
+  global.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes('/check-email')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ available: true }),
+      });
+    }
+    return Promise.resolve({
+      ok: false,
+      json: async () => ({ message }),
+    });
+  });
+}
+
+function mockFetchEmailTaken() {
+  global.fetch = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes('/check-email')) {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ available: false }),
+      });
+    }
+    return Promise.resolve({
+      ok: true,
+      json: async () => ({
+        accessToken: 'test-access-token',
+        user: { id: '1', email: 'test@company.com' },
+      }),
+    });
   });
 }
 
@@ -105,6 +142,16 @@ async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await selectShadcnOption(user, 'birthdate-month', '06');
   await selectShadcnOption(user, 'birthdate-day', '15');
   // role defaults to LEARNER, experience defaults to JUNIOR — no extra clicks needed
+}
+
+function getSignupRequestBody() {
+  const signupCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.find(([url]) =>
+    String(url).includes('/signup'),
+  );
+  if (!signupCall?.[1]?.body) {
+    throw new Error('No signup request was made');
+  }
+  return JSON.parse(signupCall[1].body as string);
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -181,6 +228,57 @@ describe('Field rendering', () => {
   it('renders the submit button', () => {
     renderSignup();
     expect(screen.getByTestId('submit-btn')).toBeInTheDocument();
+  });
+});
+
+// ── Email availability ──────────────────────────────────────────────────────────
+
+describe('Email availability', () => {
+  it('shows an error when the email is already registered', async () => {
+    mockFetchEmailTaken();
+    const user = userEvent.setup();
+    renderSignup();
+
+    await user.type(screen.getByTestId('email-input'), 'taken@company.com');
+    await user.tab();
+
+    expect(await screen.findByText('This email is already registered')).toBeInTheDocument();
+    expect(global.fetch).toHaveBeenCalledWith(
+      'http://localhost:8000/api/auth/check-email?email=taken%40company.com',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+
+  it('does not check availability until the email format is valid', async () => {
+    mockFetchEmailTaken();
+    const user = userEvent.setup();
+    renderSignup();
+
+    await user.type(screen.getByTestId('email-input'), 'not-an-email');
+    await user.tab();
+
+    expect(screen.getByText('Enter a valid email')).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('blocks submit when the email is already registered', async () => {
+    mockFetchEmailTaken();
+    const user = userEvent.setup();
+    renderSignup();
+
+    await user.type(screen.getByTestId('email-input'), 'taken@company.com');
+    await user.type(screen.getByTestId('password-input'), 'Secret123!');
+    await selectShadcnOption(user, 'department-select', 'Engineering');
+    await selectShadcnOption(user, 'birthdate-year', '1995');
+    await selectShadcnOption(user, 'birthdate-month', '06');
+    await selectShadcnOption(user, 'birthdate-day', '15');
+    await user.click(screen.getByTestId('submit-btn'));
+
+    expect(await screen.findByText('This email is already registered')).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      'http://localhost:8000/api/auth/signup',
+      expect.anything(),
+    );
   });
 });
 
@@ -303,7 +401,11 @@ describe('Bio textarea', () => {
     await fillRequiredFields(user);
     await user.click(screen.getByTestId('submit-btn'));
 
-    expect(global.fetch).toHaveBeenCalledOnce();
+    expect(
+      (global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter(([url]) =>
+        String(url).includes('/signup'),
+      ),
+    ).toHaveLength(1);
   });
 });
 
@@ -318,7 +420,7 @@ describe('Birthdate selects', () => {
     await fillRequiredFields(user);
     await user.click(screen.getByTestId('submit-btn'));
 
-    const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    const body = getSignupRequestBody();
     expect(body.birthdate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(body.birthdate).toBe('1995-06-15');
   });
@@ -402,8 +504,12 @@ describe('Form submission', () => {
     await fillRequiredFields(user);
     await user.click(screen.getByTestId('submit-btn'));
 
-    expect(global.fetch).toHaveBeenCalledOnce();
-    const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    expect(
+      (global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter(([url]) =>
+        String(url).includes('/signup'),
+      ),
+    ).toHaveLength(1);
+    const body = getSignupRequestBody();
     expect(body).toMatchObject({
       email: 'test@company.com',
       role: 'LEARNER',
@@ -429,7 +535,7 @@ describe('Form submission', () => {
     await selectShadcnOption(user, 'birthdate-day', '22');
     await user.click(screen.getByTestId('submit-btn'));
 
-    const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    const body = getSignupRequestBody();
     expect(body.teamName).toBe('Platform Team');
     expect(body.role).toBe('MANAGER');
   });
@@ -450,7 +556,7 @@ describe('Form submission', () => {
 
     await user.click(screen.getByTestId('submit-btn'));
 
-    const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+    const body = getSignupRequestBody();
     expect(body.addresses).toHaveLength(1);
     expect(body.addresses[0]).toMatchObject({ label: 'Home', street1: '1 Main St', city: 'New York' });
     // client-only fields must not leak into the payload

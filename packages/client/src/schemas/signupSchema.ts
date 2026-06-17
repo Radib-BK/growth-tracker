@@ -130,6 +130,14 @@ export function validateTeamNameField(
   return undefined;
 }
 
+const emailFormatSchema = z.string().min(1, "Email is required").email("Enter a valid email");
+
+export function validateEmailFormat(email: string): string | undefined {
+  const result = emailFormatSchema.safeParse(email);
+  if (!result.success) return result.error.issues[0]?.message;
+  return undefined;
+}
+
 export function toSignupPayload(data: SignupFormValues) {
   const birthdate = toBirthdateString(data.birthYear, data.birthMonth, data.birthDay);
   return {

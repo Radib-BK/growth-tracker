@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  checkEmailAvailability,
+  EMAIL_UNAVAILABLE_MESSAGE,
+} from "@/lib/checkEmailAvailability";
+import {
   type SignupFormState,
   validateAllSignupFields,
   validateSignupField,
 } from "@/lib/signupValidation";
-import { validateDepartmentField } from "@/schemas/signupSchema";
+import { validateDepartmentField, validateEmailFormat } from "@/schemas/signupSchema";
 
 const DEBOUNCE_MS = 300;
 
@@ -15,6 +19,8 @@ export function useSignupFieldValidation(getFormState: () => SignupFormState) {
   const formStateRef = useRef(getFormState());
   const touchedRef = useRef(touched);
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const emailCheckAbortRef = useRef<AbortController | null>(null);
+  const emailCheckGenerationRef = useRef(0);
 
   formStateRef.current = getFormState();
   touchedRef.current = touched;
@@ -22,6 +28,7 @@ export function useSignupFieldValidation(getFormState: () => SignupFormState) {
   useEffect(() => {
     const timers = timersRef.current;
     return () => {
+      emailCheckAbortRef.current?.abort();
       for (const timer of timers.values()) {
         clearTimeout(timer);
       }
@@ -36,6 +43,40 @@ export function useSignupFieldValidation(getFormState: () => SignupFormState) {
         next[field] = message;
       } else {
         delete next[field];
+      }
+      return next;
+    });
+  }, []);
+
+  const applyEmailValidation = useCallback(async () => {
+    const email = formStateRef.current.email;
+    const syncError = validateEmailFormat(email);
+
+    if (syncError) {
+      emailCheckGenerationRef.current += 1;
+      emailCheckAbortRef.current?.abort();
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        next.email = syncError;
+        return next;
+      });
+      return;
+    }
+
+    emailCheckAbortRef.current?.abort();
+    const controller = new AbortController();
+    emailCheckAbortRef.current = controller;
+    const generation = ++emailCheckGenerationRef.current;
+
+    const available = await checkEmailAvailability(email, controller.signal);
+    if (generation !== emailCheckGenerationRef.current) return;
+
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (available === false) {
+        next.email = EMAIL_UNAVAILABLE_MESSAGE;
+      } else {
+        delete next.email;
       }
       return next;
     });
@@ -58,11 +99,15 @@ export function useSignupFieldValidation(getFormState: () => SignupFormState) {
         field,
         setTimeout(() => {
           timersRef.current.delete(field);
-          applyFieldValidation(field);
+          if (field === "email") {
+            void applyEmailValidation();
+          } else {
+            applyFieldValidation(field);
+          }
         }, DEBOUNCE_MS),
       );
     },
-    [applyFieldValidation, clearScheduledValidation],
+    [applyEmailValidation, applyFieldValidation, clearScheduledValidation],
   );
 
   const markTouched = useCallback((field: string) => {
@@ -74,9 +119,13 @@ export function useSignupFieldValidation(getFormState: () => SignupFormState) {
     (field: string) => {
       clearScheduledValidation(field);
       markTouched(field);
-      applyFieldValidation(field);
+      if (field === "email") {
+        void applyEmailValidation();
+      } else {
+        applyFieldValidation(field);
+      }
     },
-    [applyFieldValidation, clearScheduledValidation, markTouched],
+    [applyEmailValidation, applyFieldValidation, clearScheduledValidation, markTouched],
   );
 
   const handleAddressBlur = useCallback(
@@ -113,8 +162,20 @@ export function useSignupFieldValidation(getFormState: () => SignupFormState) {
     [fieldError],
   );
 
-  const validateAllAndTouch = useCallback(() => {
+  const validateAllAndTouch = useCallback(async () => {
     const errs = validateAllSignupFields(formStateRef.current);
+    const email = formStateRef.current.email;
+
+    if (!errs.email && email) {
+      emailCheckAbortRef.current?.abort();
+      const controller = new AbortController();
+      emailCheckAbortRef.current = controller;
+      const available = await checkEmailAvailability(email, controller.signal);
+      if (available === false) {
+        errs.email = EMAIL_UNAVAILABLE_MESSAGE;
+      }
+    }
+
     setFieldErrors(errs);
     const allTouched = Object.fromEntries(Object.keys(errs).map((key) => [key, true]));
     touchedRef.current = { ...touchedRef.current, ...allTouched };
@@ -125,6 +186,10 @@ export function useSignupFieldValidation(getFormState: () => SignupFormState) {
   const clearField = useCallback(
     (field: string) => {
       clearScheduledValidation(field);
+      if (field === "email") {
+        emailCheckGenerationRef.current += 1;
+        emailCheckAbortRef.current?.abort();
+      }
       setFieldErrors((prev) => {
         const next = { ...prev };
         delete next[field];

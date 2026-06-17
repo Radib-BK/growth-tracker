@@ -187,7 +187,7 @@ function Signup() {
     e.preventDefault();
     setApiError("");
 
-    const errs = validateAllAndTouch();
+    const errs = await validateAllAndTouch();
     if (Object.keys(errs).length > 0) {
       return;
     }
