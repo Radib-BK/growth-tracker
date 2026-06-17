@@ -121,6 +121,15 @@ export function validateDepartmentField(value: string): string | undefined {
   return undefined;
 }
 
+export function validateTeamNameField(
+  role: "LEARNER" | "MANAGER",
+  value: string,
+): string | undefined {
+  if (role !== "MANAGER") return undefined;
+  if (!value.trim()) return "Team name is required for managers";
+  return undefined;
+}
+
 export function toSignupPayload(data: SignupFormValues) {
   const birthdate = toBirthdateString(data.birthYear, data.birthMonth, data.birthDay);
   return {

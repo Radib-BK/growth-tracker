@@ -61,11 +61,7 @@ export function BirthdateSelects({
         </SelectContent>
       </Select>
 
-      <Select
-        value={month || undefined}
-        onValueChange={onMonthChange}
-        disabled={!year}
-      >
+      <Select key={year || "year-empty"} value={month || undefined} onValueChange={onMonthChange} disabled={!year}>
         <SelectTrigger
           className="w-full"
           data-testid="birthdate-month"
@@ -85,6 +81,7 @@ export function BirthdateSelects({
       </Select>
 
       <Select
+        key={`${year}-${month}`}
         value={day || undefined}
         onValueChange={onDayChange}
         disabled={!year || !month}

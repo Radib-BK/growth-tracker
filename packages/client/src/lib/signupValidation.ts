@@ -1,6 +1,10 @@
-import { signupFormSchema, validateDepartmentField } from "@/schemas/signupSchema";
+import {
+  signupFormSchema,
+  validateDepartmentField,
+  validateTeamNameField,
+} from "@/schemas/signupSchema";
 
-export { validateDepartmentField };
+export { validateDepartmentField, validateTeamNameField };
 
 function issuePathKey(path: PropertyKey[]): string {
   return path.map(String).join(".") || "form";
@@ -52,6 +56,10 @@ export function validateSignupField(
   state: SignupFormState,
   field: string,
 ): string | undefined {
+  if (field === "teamName") {
+    return validateTeamNameField(state.role, state.teamName);
+  }
+
   const result = signupFormSchema.safeParse(buildSignupFormValues(state));
   if (result.success) return undefined;
   return result.error.issues.find((issue) => issuePathKey(issue.path) === field)?.message;
@@ -59,14 +67,21 @@ export function validateSignupField(
 
 export function validateAllSignupFields(state: SignupFormState): Record<string, string> {
   const result = signupFormSchema.safeParse(buildSignupFormValues(state));
-  if (result.success) return {};
-
   const errors: Record<string, string> = {};
-  for (const issue of result.error.issues) {
-    const key = issuePathKey(issue.path);
-    if (!errors[key]) {
-      errors[key] = issue.message;
+
+  if (!result.success) {
+    for (const issue of result.error.issues) {
+      const key = issuePathKey(issue.path);
+      if (!errors[key]) {
+        errors[key] = issue.message;
+      }
     }
   }
+
+  const teamNameError = validateTeamNameField(state.role, state.teamName);
+  if (teamNameError) {
+    errors.teamName = teamNameError;
+  }
+
   return errors;
 }

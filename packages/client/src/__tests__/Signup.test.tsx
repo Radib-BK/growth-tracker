@@ -86,8 +86,14 @@ async function selectShadcnOption(
   triggerTestId: string,
   optionName: string,
 ) {
-  await user.click(screen.getByTestId(triggerTestId));
-  await user.click(screen.getByRole('option', { name: optionName }));
+  const trigger = screen.getByTestId(triggerTestId);
+  await user.click(trigger);
+  const listboxId = trigger.getAttribute('aria-controls');
+  const listbox = listboxId ? document.getElementById(listboxId) : screen.getByRole('listbox');
+  if (!listbox) {
+    throw new Error(`No listbox found for ${triggerTestId}`);
+  }
+  await user.click(within(listbox).getByRole('option', { name: optionName }));
 }
 
 /** Fill the minimum required fields so the form can be submitted. */
@@ -315,6 +321,38 @@ describe('Birthdate selects', () => {
     const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
     expect(body.birthdate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(body.birthdate).toBe('1995-06-15');
+  });
+
+  it('resets month and day placeholders when the year changes', async () => {
+    const user = userEvent.setup();
+    renderSignup();
+
+    await selectShadcnOption(user, 'birthdate-year', '1995');
+    await selectShadcnOption(user, 'birthdate-month', '06');
+    await selectShadcnOption(user, 'birthdate-day', '15');
+
+    expect(screen.getByTestId('birthdate-month')).toHaveTextContent('06');
+    expect(screen.getByTestId('birthdate-day')).toHaveTextContent('15');
+
+    await selectShadcnOption(user, 'birthdate-year', '1990');
+
+    expect(screen.getByTestId('birthdate-month')).toHaveTextContent('Month');
+    expect(screen.getByTestId('birthdate-day')).toHaveTextContent('Day');
+  });
+
+  it('resets the day placeholder when the month changes to one with fewer days', async () => {
+    const user = userEvent.setup();
+    renderSignup();
+
+    await selectShadcnOption(user, 'birthdate-year', '2015');
+    await selectShadcnOption(user, 'birthdate-month', '03');
+    await selectShadcnOption(user, 'birthdate-day', '31');
+
+    expect(screen.getByTestId('birthdate-day')).toHaveTextContent('31');
+
+    await selectShadcnOption(user, 'birthdate-month', '04');
+
+    expect(screen.getByTestId('birthdate-day')).toHaveTextContent('Day');
   });
 });
 
