@@ -11,7 +11,9 @@ export const DEPARTMENTS = [
   "Other",
 ] as const;
 
-const departmentFieldSchema = z.enum(DEPARTMENTS, { message: "Select a department" });
+export const emailFormatSchema = z.string().min(1, "Email is required").email("Enter a valid email");
+
+export const TEAM_NAME_REQUIRED_MESSAGE = "Team name is required for managers";
 
 const addressFormInputSchema = z.object({
   label: z.string(),
@@ -21,9 +23,9 @@ const addressFormInputSchema = z.object({
   zipCode: z.string(),
 });
 
-export type AddressFormInput = z.infer<typeof addressFormInputSchema>;
+type AddressFormInput = z.infer<typeof addressFormInputSchema>;
 
-export function isBlankAddress(a: AddressFormInput) {
+function isBlankAddress(a: AddressFormInput) {
   return (
     !a.label.trim() &&
     !a.street1.trim() &&
@@ -84,59 +86,40 @@ export function normalizeAddresses(addrs: AddressFormInput[]) {
 
 export const signupFormSchema = z
   .object({
-    email: z.string().min(1, "Email is required").email("Enter a valid email"),
+    email: emailFormatSchema,
     password: z
       .string()
       .min(8, "At least 8 characters")
       .regex(/[A-Z]/, "At least one capital letter")
       .regex(/[^A-Za-z0-9]/, "At least one special character"),
     role: z.enum(["LEARNER", "MANAGER"]),
-    department: z.enum(DEPARTMENTS, { message: "Select a department" }),
+    department: z
+      .string()
+      .refine((v): v is (typeof DEPARTMENTS)[number] => DEPARTMENTS.includes(v as (typeof DEPARTMENTS)[number]), {
+        message: "Select a department",
+      }),
     experienceLevel: z.enum(["JUNIOR", "MID", "SENIOR"]),
     teamName: z.string().optional(),
     bio: z.string().max(250).optional(),
     birthYear: z.string().min(1, "Select a year"),
     birthMonth: z.string().min(1, "Select a month"),
     birthDay: z.string().min(1, "Select a day"),
-    addresses: z.array(addressFormInputSchema).default([]),
-  })
-  .refine((d) => d.role !== "MANAGER" || !!d.teamName?.trim(), {
-    message: "Team name is required for managers",
-    path: ["teamName"],
+    addresses: z.array(addressFormInputSchema),
   })
   .refine((d) => isValidBirthdate(d.birthYear, d.birthMonth, d.birthDay), {
     message: "Invalid birthdate",
     path: ["birthDay"],
   })
+  .refine((d) => d.role !== "MANAGER" || !!d.teamName?.trim(), {
+    message: TEAM_NAME_REQUIRED_MESSAGE,
+    path: ["teamName"],
+  })
   .superRefine((data, ctx) => {
     data.addresses.forEach((addr, index) => validateAddressEntry(addr, index, ctx));
   });
 
+export type SignupFormInput = z.input<typeof signupFormSchema>;
 export type SignupFormValues = z.infer<typeof signupFormSchema>;
-
-export function validateDepartmentField(value: string): string | undefined {
-  if (!value) return "Select a department";
-  const result = departmentFieldSchema.safeParse(value);
-  if (!result.success) return result.error.issues[0]?.message;
-  return undefined;
-}
-
-export function validateTeamNameField(
-  role: "LEARNER" | "MANAGER",
-  value: string,
-): string | undefined {
-  if (role !== "MANAGER") return undefined;
-  if (!value.trim()) return "Team name is required for managers";
-  return undefined;
-}
-
-const emailFormatSchema = z.string().min(1, "Email is required").email("Enter a valid email");
-
-export function validateEmailFormat(email: string): string | undefined {
-  const result = emailFormatSchema.safeParse(email);
-  if (!result.success) return result.error.issues[0]?.message;
-  return undefined;
-}
 
 export function toSignupPayload(data: SignupFormValues) {
   const birthdate = toBirthdateString(data.birthYear, data.birthMonth, data.birthDay);

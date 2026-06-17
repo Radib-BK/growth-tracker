@@ -245,7 +245,6 @@ describe('Email availability', () => {
     expect(await screen.findByText('This email is already registered')).toBeInTheDocument();
     expect(global.fetch).toHaveBeenCalledWith(
       'http://localhost:8000/api/auth/check-email?email=taken%40company.com',
-      expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
   });
 

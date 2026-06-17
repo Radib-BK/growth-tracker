@@ -1,13 +1,12 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
+import { useForm, useFormState } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  loginFormSchema,
-  validateAllLoginFields,
-  validateLoginField,
-} from "@/schemas/loginSchema";
+import { shownFieldError } from "@/lib/shownFieldError";
+import { loginFormSchema, type LoginFormValues } from "@/schemas/loginSchema";
 
 const API_URL = "http://localhost:8000/api/auth/login";
 
@@ -21,54 +20,27 @@ function RequiredMark() {
 
 function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [apiError, setApiError] = useState("");
 
-  function getFormValues() {
-    return { email, password };
-  }
+  const { register, handleSubmit, getFieldState, control } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginFormSchema),
+    mode: "onTouched",
+    defaultValues: { email: "", password: "" },
+  });
 
-  function fieldError(field: string) {
-    return touched[field] ? fieldErrors[field] : undefined;
-  }
+  const formState = useFormState({ control });
 
-  function handleBlur(field: "email" | "password") {
-    setTouched((prev) => ({ ...prev, [field]: true }));
-    const message = validateLoginField(getFormValues(), field);
-    setFieldErrors((prev) => {
-      const next = { ...prev };
-      if (message) {
-        next[field] = message;
-      } else {
-        delete next[field];
-      }
-      return next;
-    });
-  }
+  const err = (name: keyof LoginFormValues) =>
+    shownFieldError(name, getFieldState, formState);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const onSubmit = handleSubmit(async (data) => {
     setApiError("");
-
-    const values = getFormValues();
-    const errs = validateAllLoginFields(values);
-    if (Object.keys(errs).length > 0) {
-      setFieldErrors(errs);
-      setTouched((prev) => ({
-        ...prev,
-        ...Object.fromEntries(Object.keys(errs).map((key) => [key, true])),
-      }));
-      return;
-    }
 
     const res = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify(loginFormSchema.parse(values)),
+      body: JSON.stringify(data),
     });
 
     const responseData = await res.json();
@@ -79,13 +51,13 @@ function Login() {
 
     localStorage.setItem("accessToken", responseData.accessToken);
     navigate("/");
-  }
+  });
 
   return (
     <div className="w-full max-w-lg px-6 py-8">
       <h1 className="mb-6 font-semibold text-2xl text-foreground">Log in</h1>
 
-      <form data-testid="login-form" onSubmit={handleSubmit} className="space-y-5">
+      <form data-testid="login-form" onSubmit={onSubmit} className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="email">
             Email
@@ -97,14 +69,10 @@ function Login() {
             autoComplete="email"
             required
             data-testid="email-input"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onBlur={() => handleBlur("email")}
-            aria-invalid={!!fieldError("email")}
+            aria-invalid={!!err("email")}
+            {...register("email")}
           />
-          {fieldError("email") && (
-            <p className="text-sm text-destructive">{fieldError("email")}</p>
-          )}
+          {err("email") && <p className="text-sm text-destructive">{err("email")}</p>}
         </div>
 
         <div className="space-y-2">
@@ -118,14 +86,10 @@ function Login() {
             autoComplete="current-password"
             required
             data-testid="password-input"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onBlur={() => handleBlur("password")}
-            aria-invalid={!!fieldError("password")}
+            aria-invalid={!!err("password")}
+            {...register("password")}
           />
-          {fieldError("password") && (
-            <p className="text-sm text-destructive">{fieldError("password")}</p>
-          )}
+          {err("password") && <p className="text-sm text-destructive">{err("password")}</p>}
         </div>
 
         {apiError && (
