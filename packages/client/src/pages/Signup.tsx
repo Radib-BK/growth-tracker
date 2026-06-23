@@ -70,7 +70,7 @@ function Signup() {
 
   const form = useForm<SignupFormInput, unknown, SignupFormValues>({
     resolver: signupResolver,
-    mode: "onTouched",
+    mode: "onBlur",
     defaultValues,
   });
 
@@ -126,6 +126,7 @@ function Signup() {
   const onSubmit = handleSubmit(async (data) => {
     setApiError("");
 
+<<<<<<< Updated upstream
     try {
       await signupRequest(toSignupPayload(data));
       navigate("/login");
@@ -143,6 +144,23 @@ function Signup() {
         return;
       }
       setApiError("Signup failed");
+=======
+    //TODO : Use Axios
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(toSignupPayload(data)),
+    });
+
+    const responseData = await res.json();
+    if (!res.ok) {
+      const details = responseData.errors
+        ? Object.values(responseData.errors as Record<string, string[]>).flat().join(" ")
+        : "";
+      setApiError([responseData.message, details].filter(Boolean).join(": ") || "Signup failed");
+      return;
+>>>>>>> Stashed changes
     }
   });
 
