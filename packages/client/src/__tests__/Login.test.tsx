@@ -1,36 +1,32 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError } from "axios";
 import { MemoryRouter } from "react-router-dom";
 import Login from "@/pages/Login";
 
 const mockNavigate = vi.fn();
+const mockLogin = vi.fn();
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-function mockFetchSuccess() {
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({
-      accessToken: "test-access-token",
-      user: { id: "1", email: "test@company.com" },
-    }),
-  });
-}
+vi.mock("@/context/useAuth", () => ({
+  useAuth: () => ({
+    login: mockLogin,
+    logout: vi.fn(),
+    user: null,
+    accessToken: null,
+    isAuthenticated: false,
+    isLoading: false,
+  }),
+}));
 
-function mockFetchError(message = "Invalid credentials") {
-  global.fetch = vi.fn().mockResolvedValue({
-    ok: false,
-    json: async () => ({ message }),
-  });
-}
-
-function renderLogin() {
+function renderLogin(initialEntries: string[] = ["/login"]) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <Login />
     </MemoryRouter>,
   );
@@ -38,6 +34,7 @@ function renderLogin() {
 
 beforeEach(() => {
   mockNavigate.mockReset();
+  mockLogin.mockReset();
   vi.restoreAllMocks();
   localStorage.clear();
 });
@@ -60,7 +57,7 @@ describe("Login page", () => {
   });
 
   it("submits credentials and navigates to home on success", async () => {
-    mockFetchSuccess();
+    mockLogin.mockResolvedValue(undefined);
     const user = userEvent.setup();
     renderLogin();
 
@@ -68,18 +65,7 @@ describe("Login page", () => {
     await user.type(screen.getByTestId("password-input"), "Secret123!");
     await user.click(screen.getByTestId("submit-btn"));
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      "http://localhost:8000/api/auth/login",
-      expect.objectContaining({
-        method: "POST",
-        credentials: "include",
-      }),
-    );
-
-    const body = JSON.parse((global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
-    expect(body).toEqual({ email: "test@company.com", password: "Secret123!" });
-
-    expect(localStorage.getItem("accessToken")).toBe("test-access-token");
+    expect(mockLogin).toHaveBeenCalledWith("test@company.com", "Secret123!");
 
     await vi.waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith("/");
@@ -87,7 +73,12 @@ describe("Login page", () => {
   });
 
   it("shows an error when credentials are invalid", async () => {
-    mockFetchError("Invalid credentials");
+    mockLogin.mockRejectedValue(
+      new AxiosError("Unauthorized", "401", undefined, undefined, {
+        status: 401,
+        data: { message: "Invalid credentials" },
+      } as never),
+    );
     const user = userEvent.setup();
     renderLogin();
 

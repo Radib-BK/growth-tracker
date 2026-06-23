@@ -1,14 +1,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { isAxiosError } from "axios";
 import { useState } from "react";
 import { useForm, useFormState } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/context/useAuth";
 import { shownFieldError } from "@/lib/shownFieldError";
 import { loginFormSchema, type LoginFormValues } from "@/schemas/loginSchema";
-
-const API_URL = "http://localhost:8000/api/auth/login";
 
 function RequiredMark() {
   return (
@@ -20,6 +20,7 @@ function RequiredMark() {
 
 function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [apiError, setApiError] = useState("");
 
   const { register, handleSubmit, getFieldState, control } = useForm<LoginFormValues>({
@@ -36,21 +37,16 @@ function Login() {
   const onSubmit = handleSubmit(async (data) => {
     setApiError("");
 
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(data),
-    });
-
-    const responseData = await res.json();
-    if (!res.ok) {
-      setApiError(responseData.message ?? "Login failed");
-      return;
+    try {
+      await login(data.email, data.password);
+      navigate("/");
+    } catch (error) {
+      if (isAxiosError(error)) {
+        setApiError(error.response?.data?.message ?? "Login failed");
+        return;
+      }
+      setApiError("Login failed");
     }
-
-    localStorage.setItem("accessToken", responseData.accessToken);
-    navigate("/");
   });
 
   return (

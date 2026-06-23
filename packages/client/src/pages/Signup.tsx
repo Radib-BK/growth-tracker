@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { isAxiosError } from "axios";
 import { signupResolver } from "@/lib/signupResolver";
 import { shownFieldError } from "@/lib/shownFieldError";
+import { signup as signupRequest } from "@/lib/authApi";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Controller,
@@ -32,8 +34,6 @@ import {
   type SignupFormValues,
   toSignupPayload,
 } from "@/schemas/signupSchema";
-
-const API_URL = "http://localhost:8000/api/auth/signup";
 
 const EXPERIENCE_LEVELS = [
   { value: "JUNIOR" as const, label: "Junior", description: "0–2 years of experience" },
@@ -126,24 +126,24 @@ function Signup() {
   const onSubmit = handleSubmit(async (data) => {
     setApiError("");
 
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(toSignupPayload(data)),
-    });
-
-    const responseData = await res.json();
-    if (!res.ok) {
-      const details = responseData.errors
-        ? Object.values(responseData.errors as Record<string, string[]>).flat().join(" ")
-        : "";
-      setApiError([responseData.message, details].filter(Boolean).join(": ") || "Signup failed");
-      return;
+    try {
+      await signupRequest(toSignupPayload(data));
+      navigate("/login");
+    } catch (error) {
+      if (isAxiosError(error)) {
+        const responseData = error.response?.data as
+          | { message?: string; errors?: Record<string, string[]> }
+          | undefined;
+        const details = responseData?.errors
+          ? Object.values(responseData.errors).flat().join(" ")
+          : "";
+        setApiError(
+          [responseData?.message, details].filter(Boolean).join(": ") || "Signup failed",
+        );
+        return;
+      }
+      setApiError("Signup failed");
     }
-
-    localStorage.setItem("accessToken", responseData.accessToken);
-    navigate("/");
   });
 
   return (

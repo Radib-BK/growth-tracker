@@ -1,6 +1,5 @@
 import { emailFormatSchema } from "@/schemas/signupSchema";
-
-const CHECK_EMAIL_URL = "http://localhost:8000/api/auth/check-email";
+import { api } from "@/lib/api";
 
 export const EMAIL_UNAVAILABLE_MESSAGE = "This email is already registered";
 
@@ -8,9 +7,9 @@ export async function checkEmailAvailability(email: string): Promise<boolean | n
   if (!emailFormatSchema.safeParse(email).success) return null;
 
   try {
-    const res = await fetch(`${CHECK_EMAIL_URL}?email=${encodeURIComponent(email)}`);
-    if (!res.ok) return null;
-    const data = (await res.json()) as { available: boolean };
+    const { data } = await api.get<{ available: boolean }>("/api/auth/check-email", {
+      params: { email },
+    });
     return data.available;
   } catch {
     return null;
