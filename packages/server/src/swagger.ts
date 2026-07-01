@@ -217,6 +217,48 @@ export const swaggerOptions: Options = {
           },
         },
       },
+      "/api/users": {
+        get: {
+          tags: ["Users"],
+          summary: "List all users (paginated)",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: "page",
+              in: "query",
+              required: false,
+              schema: { type: "integer", minimum: 1, default: 1 },
+              example: 1,
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Paginated list of users",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      users: { type: "array", items: { $ref: "#/components/schemas/User" } },
+                      pagination: {
+                        type: "object",
+                        properties: {
+                          page:       { type: "integer", example: 1 },
+                          pageSize:   { type: "integer", example: 10 },
+                          total:      { type: "integer", example: 42 },
+                          totalPages: { type: "integer", example: 5 },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid page parameter" },
+            "401": { description: "Unauthorized" },
+          },
+        },
+      },
       "/api/auth/check-email": {
         get: {
           tags: ["Auth"],
