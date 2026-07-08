@@ -49,6 +49,28 @@ async function createUsers(count: number) {
   }
 }
 
+// A small, deterministic set of users spanning roles, departments, and
+// experience levels, used by the filtering and sorting tests.
+const diverseUsers = [
+  { email: email("users-test-alice"), role: "LEARNER", department: "Engineering", experienceLevel: "JUNIOR" },
+  { email: email("users-test-bob"),   role: "LEARNER", department: "Design",      experienceLevel: "MID" },
+  {
+    email: email("users-test-carol"),
+    role: "MANAGER",
+    department: "Product",
+    experienceLevel: "SENIOR",
+    teamName: "Platform Team",
+  },
+] as const;
+
+async function seedDiverseUsers() {
+  for (const u of diverseUsers) {
+    await request(app)
+      .post("/api/auth/signup")
+      .send({ ...basePayload, ...u });
+  }
+}
+
 describe("GET /api/users", () => {
   it("returns 401 with no token", async () => {
     const res = await request(app).get("/api/users");
@@ -125,5 +147,178 @@ describe("GET /api/users", () => {
 
     expect(res.status).toBe(400);
     expect(res.body.errors.page).toBeDefined();
+  });
+
+  it("echoes the default sort and empty filters", async () => {
+    const token = await signupAndGetToken();
+
+    const res = await request(app)
+      .get("/api/users")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.sort).toEqual({ sortBy: "createdAt", sortOrder: "asc" });
+    expect(res.body.filters).toEqual({
+      role: null,
+      department: null,
+      experienceLevel: null,
+      search: null,
+    });
+  });
+
+  // ── Filtering ──
+
+  it("filters by role", async () => {
+    const token = await signupAndGetToken();
+    await seedDiverseUsers();
+
+    const res = await request(app)
+      .get("/api/users")
+      .query({ role: "MANAGER" })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.pagination.total).toBe(1);
+    expect(res.body.users.every((u: { role: string }) => u.role === "MANAGER")).toBe(true);
+    expect(res.body.filters.role).toBe("MANAGER");
+  });
+
+  it("filters by department", async () => {
+    const token = await signupAndGetToken();
+    await seedDiverseUsers();
+
+    const res = await request(app)
+      .get("/api/users")
+      .query({ department: "Design" })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.pagination.total).toBe(1);
+    expect(res.body.users[0].department).toBe("Design");
+  });
+
+  it("filters by experienceLevel", async () => {
+    const token = await signupAndGetToken();
+    await seedDiverseUsers();
+
+    const res = await request(app)
+      .get("/api/users")
+      .query({ experienceLevel: "SENIOR" })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.pagination.total).toBe(1);
+    expect(res.body.users[0].experienceLevel).toBe("SENIOR");
+  });
+
+  it("combines multiple filters", async () => {
+    const token = await signupAndGetToken();
+    await seedDiverseUsers();
+
+    const res = await request(app)
+      .get("/api/users")
+      .query({ role: "LEARNER", department: "Engineering" })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    // Both the token-owner (basePayload) and Alice match.
+    expect(res.body.pagination.total).toBe(2);
+    expect(
+      res.body.users.every(
+        (u: { role: string; department: string }) => u.role === "LEARNER" && u.department === "Engineering",
+      ),
+    ).toBe(true);
+  });
+
+  it("searches case-insensitively across email and teamName", async () => {
+    const token = await signupAndGetToken();
+    await seedDiverseUsers();
+
+    // Matches Carol's teamName "Platform Team".
+    const byTeam = await request(app)
+      .get("/api/users")
+      .query({ search: "PLATFORM" })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(byTeam.status).toBe(200);
+    expect(byTeam.body.pagination.total).toBe(1);
+    expect(byTeam.body.users[0].teamName).toBe("Platform Team");
+
+    // Matches Alice's email.
+    const byEmail = await request(app)
+      .get("/api/users")
+      .query({ search: "ALICE" })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(byEmail.status).toBe(200);
+    expect(byEmail.body.pagination.total).toBe(1);
+    expect(byEmail.body.users[0].email).toBe(email("users-test-alice"));
+  });
+
+  it("returns 400 for an invalid filter enum value", async () => {
+    const token = await signupAndGetToken();
+
+    const res = await request(app)
+      .get("/api/users")
+      .query({ role: "ADMIN" })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.errors.role).toBeDefined();
+  });
+
+  // ── Sorting ──
+
+  it("sorts by email ascending", async () => {
+    const token = await signupAndGetToken();
+    await seedDiverseUsers();
+
+    const res = await request(app)
+      .get("/api/users")
+      .query({ sortBy: "email", sortOrder: "asc" })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    const emails = res.body.users.map((u: { email: string }) => u.email);
+    expect(emails).toEqual([...emails].sort());
+    expect(res.body.sort).toEqual({ sortBy: "email", sortOrder: "asc" });
+  });
+
+  it("sorts by email descending", async () => {
+    const token = await signupAndGetToken();
+    await seedDiverseUsers();
+
+    const res = await request(app)
+      .get("/api/users")
+      .query({ sortBy: "email", sortOrder: "desc" })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    const emails = res.body.users.map((u: { email: string }) => u.email);
+    expect(emails).toEqual([...emails].sort().reverse());
+  });
+
+  it("returns 400 for a non-whitelisted sortBy field", async () => {
+    const token = await signupAndGetToken();
+
+    const res = await request(app)
+      .get("/api/users")
+      .query({ sortBy: "passwordHash" })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.errors.sortBy).toBeDefined();
+  });
+
+  it("returns 400 for an invalid sortOrder", async () => {
+    const token = await signupAndGetToken();
+
+    const res = await request(app)
+      .get("/api/users")
+      .query({ sortOrder: "sideways" })
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.errors.sortOrder).toBeDefined();
   });
 });

@@ -120,6 +120,8 @@ Base URL: `http://localhost:8000/api`
 | `POST` | `/auth/logout` | No | Invalidate the current refresh token |
 | `POST` | `/auth/refresh` | No (reads cookie) | Exchange refresh token for a new access token |
 | `GET` | `/auth/me` | Yes | Return the current user's profile |
+| `GET` | `/auth/check-email` | No | Check whether an email is available — `?email=foo@bar.com` → `{ available: bool }` |
+| `GET` | `/users` | Yes | List users — paginated, filterable, and sortable (see Swagger for query params) |
 | `GET` | `/health` | No | Health check |
 
 #### Protected routes
@@ -146,6 +148,7 @@ curl -X POST http://localhost:8000/api/auth/signup \
     "role": "LEARNER",
     "department": "Engineering",
     "experienceLevel": "MID",
+    "birthdate": "1995-06-15",
     "addresses": []
   }'
 ```
@@ -154,7 +157,11 @@ curl -X POST http://localhost:8000/api/auth/signup \
 
 `experienceLevel` must be `"JUNIOR"`, `"MID"`, or `"SENIOR"`.
 
-`addresses` is optional. Each address requires: `label`, `street1`, `city`, `state`, `zipCode`, `country`. `street2` is optional.
+`department` must be one of `Engineering`, `Product`, `Design`, `Marketing`, `Operations`, `HR`, or `Other`.
+
+`birthdate` is required, formatted as `YYYY-MM-DD`. `bio` is optional (max 250 chars).
+
+`addresses` is optional. Each address requires: `label`, `street1`, `city`, `zipCode` (integer). `street2` is optional.
 
 Response:
 ```json
@@ -167,6 +174,8 @@ Response:
     "department": "Engineering",
     "experienceLevel": "MID",
     "teamName": null,
+    "bio": null,
+    "birthdate": "1995-06-15",
     "addresses": []
   }
 }
@@ -180,14 +189,15 @@ The schema lives in `packages/server/prisma/schema.prisma`.
 
 ### Models
 
-- **User** — email, hashed password, role, department, experience level, optional team name
-- **Address** — one-to-many with User; each entry has a user-defined label and full address fields
+- **User** — email, hashed password, role, department, experience level, birthdate, optional team name and bio
+- **Address** — one-to-many with User; each entry has a user-defined label, street lines, city, and zip code
 - **RefreshToken** — tracks issued refresh tokens for revocation
 
 ### Enums
 
 - **Role** — `LEARNER` | `MANAGER`
 - **ExperienceLevel** — `JUNIOR` | `MID` | `SENIOR`
+- **Department** — `Engineering` | `Product` | `Design` | `Marketing` | `Operations` | `HR` | `Other`
 
 After changing the schema, run:
 
