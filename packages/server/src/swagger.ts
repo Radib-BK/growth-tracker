@@ -217,6 +217,120 @@ export const swaggerOptions: Options = {
           },
         },
       },
+      "/api/users": {
+        get: {
+          tags: ["Users"],
+          summary: "List all users (paginated, filterable, sortable)",
+          description:
+            "Returns a paginated list of users (page size 10). Supports filtering by role, department, " +
+            "and experience level, a case-insensitive substring search over email and teamName, and " +
+            "configurable sorting. Requires a Bearer access token.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            {
+              name: "page",
+              in: "query",
+              required: false,
+              description: "1-based page number.",
+              schema: { type: "integer", minimum: 1, default: 1 },
+              example: 1,
+            },
+            {
+              name: "role",
+              in: "query",
+              required: false,
+              description: "Filter by role.",
+              schema: { type: "string", enum: ["LEARNER", "MANAGER"] },
+            },
+            {
+              name: "department",
+              in: "query",
+              required: false,
+              description: "Filter by department.",
+              schema: {
+                type: "string",
+                enum: ["Engineering", "Product", "Design", "Marketing", "Operations", "HR", "Other"],
+              },
+            },
+            {
+              name: "experienceLevel",
+              in: "query",
+              required: false,
+              description: "Filter by experience level.",
+              schema: { type: "string", enum: ["JUNIOR", "MID", "SENIOR"] },
+            },
+            {
+              name: "search",
+              in: "query",
+              required: false,
+              description: "Case-insensitive substring match against email and teamName.",
+              schema: { type: "string", minLength: 1 },
+              example: "platform",
+            },
+            {
+              name: "sortBy",
+              in: "query",
+              required: false,
+              description: "Field to sort by.",
+              schema: {
+                type: "string",
+                enum: ["createdAt", "email", "role", "department", "experienceLevel"],
+                default: "createdAt",
+              },
+            },
+            {
+              name: "sortOrder",
+              in: "query",
+              required: false,
+              description: "Sort direction.",
+              schema: { type: "string", enum: ["asc", "desc"], default: "asc" },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Paginated list of users, echoing the applied sort and filters",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      users: { type: "array", items: { $ref: "#/components/schemas/User" } },
+                      pagination: {
+                        type: "object",
+                        properties: {
+                          page:       { type: "integer", example: 1 },
+                          pageSize:   { type: "integer", example: 10 },
+                          total:      { type: "integer", example: 42 },
+                          totalPages: { type: "integer", example: 5 },
+                        },
+                      },
+                      sort: {
+                        type: "object",
+                        properties: {
+                          sortBy:    { type: "string", example: "createdAt" },
+                          sortOrder: { type: "string", enum: ["asc", "desc"], example: "asc" },
+                        },
+                      },
+                      filters: {
+                        type: "object",
+                        description: "The applied filters; null when not provided.",
+                        properties: {
+                          role:            { type: "string", nullable: true, enum: ["LEARNER", "MANAGER"] },
+                          department:      { type: "string", nullable: true },
+                          experienceLevel: { type: "string", nullable: true, enum: ["JUNIOR", "MID", "SENIOR"] },
+                          search:          { type: "string", nullable: true },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Invalid query parameter (page, filter enum, sortBy, or sortOrder)" },
+            "401": { description: "Unauthorized" },
+          },
+        },
+      },
       "/api/auth/check-email": {
         get: {
           tags: ["Auth"],
