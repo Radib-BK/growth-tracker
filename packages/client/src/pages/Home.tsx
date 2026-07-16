@@ -49,6 +49,7 @@ const columns = [
 ];
 
 const ALL = "__all__";
+const PAGE_SIZE = 5;
 
 function Home() {
   const { user, logout } = useAuth();
@@ -100,6 +101,7 @@ function Home() {
       try {
         const result = await listUsers({
           page,
+          pageSize: PAGE_SIZE,
           role: role === ALL ? undefined : role,
           department: department === ALL ? undefined : department,
           experienceLevel: experienceLevel === ALL ? undefined : experienceLevel,
@@ -122,7 +124,7 @@ function Home() {
   }, [page, role, department, experienceLevel, search, sortBy, sortOrder]);
 
   const sorting: SortingState = [{ id: sortBy, desc: sortOrder === "desc" }];
-  const pageSize = data?.pagination.pageSize ?? 10;
+  const pageSize = data?.pagination.pageSize ?? PAGE_SIZE;
 
   const table = useReactTable({
     data: data?.users ?? [],
@@ -314,10 +316,36 @@ function Home() {
                 type="button"
                 variant="outline"
                 disabled={!table.getCanPreviousPage()}
+                onClick={() => table.setPageIndex(0)}
+              >
+                First
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!table.getCanPreviousPage()}
                 onClick={() => table.previousPage()}
               >
                 Previous
               </Button>
+              {(() => {
+                const totalPages = data.pagination.totalPages;
+                const windowSize = 5;
+                let start = Math.max(1, page - 2);
+                const end = Math.min(totalPages, start + windowSize - 1);
+                start = Math.max(1, end - windowSize + 1);
+                const pageNumbers = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+                return pageNumbers.map((pageNum) => (
+                  <Button
+                    key={pageNum}
+                    type="button"
+                    variant={pageNum === page ? "default" : "outline"}
+                    onClick={() => table.setPageIndex(pageNum - 1)}
+                  >
+                    {pageNum}
+                  </Button>
+                ));
+              })()}
               <Button
                 type="button"
                 variant="outline"
@@ -325,6 +353,14 @@ function Home() {
                 onClick={() => table.nextPage()}
               >
                 Next
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!table.getCanNextPage()}
+                onClick={() => table.setPageIndex(data.pagination.totalPages - 1)}
+              >
+                Last
               </Button>
             </div>
           </div>

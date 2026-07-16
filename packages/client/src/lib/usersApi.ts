@@ -3,6 +3,7 @@ import type { User } from "@/lib/authApi";
 
 export type ListUsersParams = {
   page?: number;
+  pageSize?: number;
   role?: string;
   department?: string;
   experienceLevel?: string;
