@@ -566,7 +566,7 @@ describe('Form submission', () => {
     await user.click(screen.getByTestId('submit-btn'));
 
     await vi.waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/login');
+      expect(mockNavigate).toHaveBeenCalledWith('/en/login');
     });
     expect(localStorage.getItem('accessToken')).toBeNull();
   });

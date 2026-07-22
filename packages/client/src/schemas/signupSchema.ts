@@ -11,9 +11,13 @@ export const DEPARTMENTS = [
   "Other",
 ] as const;
 
-export const emailFormatSchema = z.string().min(1, "Email is required").email("Enter a valid email");
+export const EMAIL_INVALID_MESSAGE = "errors.emailInvalid";
 
-export const TEAM_NAME_REQUIRED_MESSAGE = "Team name is required for managers";
+export const emailFormatSchema = z.string().min(1, "errors.emailRequired").email(EMAIL_INVALID_MESSAGE);
+
+export const TEAM_NAME_REQUIRED_MESSAGE = "errors.teamNameRequired";
+
+export const SELECT_DEPARTMENT_MESSAGE = "errors.selectDepartment";
 
 const addressFormInputSchema = z.object({
   label: z.string(),
@@ -36,14 +40,14 @@ function isBlankAddress(a: AddressFormInput) {
 }
 
 const validatedAddressFields = z.object({
-  label: z.string().min(1, "Label is required").max(100),
-  street1: z.string().min(1, "Street address is required").max(200),
+  label: z.string().min(1, "errors.addressLabelRequired").max(100),
+  street1: z.string().min(1, "errors.streetRequired").max(200),
   street2: z.string().max(200).optional(),
-  city: z.string().min(1, "City is required").max(100),
+  city: z.string().min(1, "errors.cityRequired").max(100),
   zipCode: z
-    .number({ invalid_type_error: "Enter a valid ZIP code" })
+    .number({ invalid_type_error: "errors.zipInvalid" })
     .int()
-    .positive("Enter a valid ZIP code"),
+    .positive("errors.zipInvalid"),
 });
 
 function validateAddressEntry(
@@ -89,25 +93,25 @@ export const signupFormSchema = z
     email: emailFormatSchema,
     password: z
       .string()
-      .min(8, "At least 8 characters")
-      .regex(/[A-Z]/, "At least one capital letter")
-      .regex(/[^A-Za-z0-9]/, "At least one special character"),
+      .min(8, "errors.passwordLength")
+      .regex(/[A-Z]/, "errors.passwordUpper")
+      .regex(/[^A-Za-z0-9]/, "errors.passwordSpecial"),
     role: z.enum(["LEARNER", "MANAGER"]),
     department: z
       .string()
       .refine((v): v is (typeof DEPARTMENTS)[number] => DEPARTMENTS.includes(v as (typeof DEPARTMENTS)[number]), {
-        message: "Select a department",
+        message: SELECT_DEPARTMENT_MESSAGE,
       }),
     experienceLevel: z.enum(["JUNIOR", "MID", "SENIOR"]),
     teamName: z.string().optional(),
     bio: z.string().max(250).optional(),
-    birthYear: z.string().min(1, "Select a year"),
-    birthMonth: z.string().min(1, "Select a month"),
-    birthDay: z.string().min(1, "Select a day"),
+    birthYear: z.string().min(1, "errors.selectYear"),
+    birthMonth: z.string().min(1, "errors.selectMonth"),
+    birthDay: z.string().min(1, "errors.selectDay"),
     addresses: z.array(addressFormInputSchema),
   })
   .refine((d) => isValidBirthdate(d.birthYear, d.birthMonth, d.birthDay), {
-    message: "Invalid birthdate",
+    message: "errors.invalidBirthdate",
     path: ["birthDay"],
   })
   .refine((d) => d.role !== "MANAGER" || !!d.teamName?.trim(), {

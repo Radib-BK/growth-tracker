@@ -3,6 +3,7 @@ import { isAxiosError } from "axios";
 import { signupResolver } from "@/lib/signupResolver";
 import { shownFieldError } from "@/lib/shownFieldError";
 import { signup as signupRequest } from "@/lib/authApi";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Controller,
@@ -25,8 +26,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useLangPath } from "@/hooks/useLangPath";
 import { daysInMonth } from "@/lib/birthdate";
-import { PASSWORD_RULES } from "@/lib/passwordRules";
+import { getPasswordRules } from "@/lib/passwordRules";
 import { cn } from "@/lib/utils";
 import {
   DEPARTMENTS,
@@ -34,12 +36,6 @@ import {
   type SignupFormValues,
   toSignupPayload,
 } from "@/schemas/signupSchema";
-
-const EXPERIENCE_LEVELS = [
-  { value: "JUNIOR" as const, label: "Junior", description: "0–2 years of experience" },
-  { value: "MID" as const, label: "Mid", description: "3–5 years of experience" },
-  { value: "SENIOR" as const, label: "Senior", description: "6+ years of experience" },
-];
 
 const defaultValues: SignupFormInput = {
   email: "",
@@ -57,7 +53,7 @@ const defaultValues: SignupFormInput = {
 
 function RequiredMark() {
   return (
-    <span className="ml-0.5 text-destructive" aria-hidden="true">
+    <span className="ms-0.5 text-destructive" aria-hidden="true">
       *
     </span>
   );
@@ -65,8 +61,16 @@ function RequiredMark() {
 
 function Signup() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { path } = useLangPath();
   const [apiError, setApiError] = useState("");
   const [closedAddresses, setClosedAddresses] = useState<Set<string>>(() => new Set());
+
+  const EXPERIENCE_LEVELS = [
+    { value: "JUNIOR" as const, label: t("signup.experienceJunior"), description: t("signup.experienceJuniorDesc") },
+    { value: "MID" as const, label: t("signup.experienceMid"), description: t("signup.experienceMidDesc") },
+    { value: "SENIOR" as const, label: t("signup.experienceSenior"), description: t("signup.experienceSeniorDesc") },
+  ];
 
   const form = useForm<SignupFormInput, unknown, SignupFormValues>({
     resolver: signupResolver,
@@ -93,7 +97,7 @@ function Signup() {
   });
 
   const err = (name: FieldPath<SignupFormInput>) =>
-    shownFieldError(name, getFieldState, formState);
+    shownFieldError(name, getFieldState, formState, t);
 
   function handleYearChange(v: string) {
     setValue("birthYear", v);
@@ -128,7 +132,7 @@ function Signup() {
 
     try {
       await signupRequest(toSignupPayload(data));
-      navigate("/login");
+      navigate(path("/login"));
     } catch (error) {
       if (isAxiosError(error)) {
         const responseData = error.response?.data as
@@ -138,17 +142,17 @@ function Signup() {
           ? Object.values(responseData.errors).flat().join(" ")
           : "";
         setApiError(
-          [responseData?.message, details].filter(Boolean).join(": ") || "Signup failed",
+          [responseData?.message, details].filter(Boolean).join(": ") || t("signup.signupFailedDefault"),
         );
         return;
       }
-      setApiError("Signup failed");
+      setApiError(t("signup.signupFailedDefault"));
     }
   });
 
   return (
     <div className="w-full max-w-lg px-6 py-8">
-      <h1 className="mb-6 font-semibold text-2xl text-foreground">Create Account</h1>
+      <h1 className="mb-6 font-semibold text-2xl text-foreground">{t("signup.title")}</h1>
 
       <form
         data-testid="signup-form"
@@ -157,7 +161,7 @@ function Signup() {
       >
         <div className="space-y-2">
           <Label htmlFor="email">
-            Email
+            {t("signup.emailLabel")}
             <RequiredMark />
           </Label>
           <Input
@@ -174,7 +178,7 @@ function Signup() {
 
         <div className="space-y-2">
           <Label htmlFor="password">
-            Password
+            {t("signup.passwordLabel")}
             <RequiredMark />
           </Label>
           <Input
@@ -188,7 +192,7 @@ function Signup() {
           />
           {err("password") && <p className="text-sm text-destructive">{err("password")}</p>}
           <ul className="mt-2 space-y-1">
-            {PASSWORD_RULES.map(({ id, test, label }) => {
+            {getPasswordRules(t).map(({ id, test, label }) => {
               const met = test(password);
               return (
                 <li
@@ -206,7 +210,7 @@ function Signup() {
 
         <div className="space-y-2">
           <Label>
-            Role
+            {t("signup.roleLabel")}
             <RequiredMark />
           </Label>
           <Controller
@@ -237,7 +241,7 @@ function Signup() {
                         : "border-input bg-background text-foreground",
                     )}
                   >
-                    Learner
+                    {t("signup.roleLearner")}
                   </Label>
                 </div>
                 <div className="relative flex-1">
@@ -256,7 +260,7 @@ function Signup() {
                         : "border-input bg-background text-foreground",
                     )}
                   >
-                    Manager
+                    {t("signup.roleManager")}
                   </Label>
                 </div>
               </RadioGroup>
@@ -267,7 +271,7 @@ function Signup() {
         {role === "MANAGER" && (
           <div className="space-y-2">
             <Label htmlFor="teamName">
-              Team name
+              {t("signup.teamNameLabel")}
               <RequiredMark />
             </Label>
             <Input
@@ -283,7 +287,7 @@ function Signup() {
 
         <div className="space-y-2">
           <Label htmlFor="department">
-            Department
+            {t("signup.departmentLabel")}
             <RequiredMark />
           </Label>
           <Controller
@@ -303,7 +307,7 @@ function Signup() {
                   data-testid="department-select"
                   aria-invalid={!!err("department")}
                 >
-                  <SelectValue placeholder="Select department" />
+                  <SelectValue placeholder={t("signup.selectDepartmentPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {DEPARTMENTS.map((dept) => (
@@ -320,7 +324,7 @@ function Signup() {
 
         <div className="space-y-2">
           <Label>
-            Experience level
+            {t("signup.experienceLabel")}
             <RequiredMark />
           </Label>
           <Controller
@@ -357,7 +361,7 @@ function Signup() {
 
         <div className="space-y-2">
           <Label htmlFor="bio">
-            Bio <span className="font-normal text-muted-foreground">(optional)</span>
+            {t("signup.bioLabel")} <span className="font-normal text-muted-foreground">{t("signup.optional")}</span>
           </Label>
           <Textarea
             id="bio"
@@ -375,7 +379,7 @@ function Signup() {
 
         <div className="space-y-2">
           <Label>
-            Birthdate
+            {t("signup.birthdateLabel")}
             <RequiredMark />
           </Label>
           <BirthdateSelects
@@ -405,7 +409,7 @@ function Signup() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>
-              Addresses <span className="font-normal text-muted-foreground">(optional)</span>
+              {t("signup.addressesLabel")} <span className="font-normal text-muted-foreground">{t("signup.optional")}</span>
             </Label>
             <Button
               type="button"
@@ -416,7 +420,7 @@ function Signup() {
               }
               className="h-auto p-0"
             >
-              Add an address
+              {t("signup.addAddress")}
             </Button>
           </div>
 
@@ -435,19 +439,19 @@ function Signup() {
                   onClick={() => toggleAddress(field.id)}
                   className="flex h-auto w-full items-center justify-between rounded-none px-3 py-2 font-medium"
                 >
-                  {field.label || "New address"}
+                  {field.label || t("signup.newAddress")}
                   <span>{isOpen ? "−" : "+"}</span>
                 </Button>
                 <div className={cn("space-y-3 px-3 pb-3", !isOpen && "hidden")}>
                   <div className="space-y-2">
                     <Label htmlFor={`address-label-${field.id}`}>
-                      Label
+                      {t("signup.addressLabelField")}
                       <RequiredMark />
                     </Label>
                     <Input
                       id={`address-label-${field.id}`}
                       type="text"
-                      placeholder="e.g. Home"
+                      placeholder={t("signup.addressLabelPlaceholder")}
                       data-testid="address-label-input"
                       aria-invalid={!!err(`addresses.${index}.label`)}
                       {...register(`addresses.${index}.label`)}
@@ -458,13 +462,13 @@ function Signup() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`address-street1-${field.id}`}>
-                      Street address
+                      {t("signup.street1Label")}
                       <RequiredMark />
                     </Label>
                     <Input
                       id={`address-street1-${field.id}`}
                       type="text"
-                      placeholder="123 Main St"
+                      placeholder={t("signup.street1Placeholder")}
                       data-testid="address-street1-input"
                       aria-invalid={!!err(`addresses.${index}.street1`)}
                       {...register(`addresses.${index}.street1`)}
@@ -477,26 +481,26 @@ function Signup() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`address-street2-${field.id}`}>
-                      Apt, suite, etc.{" "}
-                      <span className="font-normal text-muted-foreground">(optional)</span>
+                      {t("signup.street2Label")}{" "}
+                      <span className="font-normal text-muted-foreground">{t("signup.optional")}</span>
                     </Label>
                     <Input
                       id={`address-street2-${field.id}`}
                       type="text"
-                      placeholder="Apt 4B"
+                      placeholder={t("signup.street2Placeholder")}
                       data-testid="address-street2-input"
                       {...register(`addresses.${index}.street2`)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`address-city-${field.id}`}>
-                      City
+                      {t("signup.cityLabel")}
                       <RequiredMark />
                     </Label>
                     <Input
                       id={`address-city-${field.id}`}
                       type="text"
-                      placeholder="New York"
+                      placeholder={t("signup.cityPlaceholder")}
                       data-testid="address-city-input"
                       aria-invalid={!!err(`addresses.${index}.city`)}
                       {...register(`addresses.${index}.city`)}
@@ -507,13 +511,13 @@ function Signup() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor={`address-zip-${field.id}`}>
-                      ZIP code
+                      {t("signup.zipLabel")}
                       <RequiredMark />
                     </Label>
                     <Input
                       id={`address-zip-${field.id}`}
                       type="number"
-                      placeholder="1000"
+                      placeholder={t("signup.zipPlaceholder")}
                       data-testid="address-zip-input"
                       aria-invalid={!!err(`addresses.${index}.zipCode`)}
                       {...register(`addresses.${index}.zipCode`)}
@@ -531,7 +535,7 @@ function Signup() {
                     onClick={() => remove(index)}
                     className="h-auto p-0 text-destructive"
                   >
-                    Remove address
+                    {t("signup.removeAddress")}
                   </Button>
                 </div>
               </div>
@@ -546,14 +550,14 @@ function Signup() {
         )}
 
         <Button type="submit" data-testid="submit-btn" className="w-full">
-          Sign Up
+          {t("signup.submit")}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
-        <Link to="/login" className="font-medium text-foreground underline-offset-4 hover:underline">
-          Log in
+        {t("signup.haveAccount")}{" "}
+        <Link to={path("/login")} className="font-medium text-foreground underline-offset-4 hover:underline">
+          {t("signup.loginLink")}
         </Link>
       </p>
     </div>

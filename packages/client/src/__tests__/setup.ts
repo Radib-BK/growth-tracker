@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom';
+import '@/i18n';
 
 /** Radix primitives require browser APIs missing from jsdom. */
 globalThis.ResizeObserver = class ResizeObserver {

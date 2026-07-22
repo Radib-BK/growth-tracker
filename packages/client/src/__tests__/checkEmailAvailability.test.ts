@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   checkEmailAvailability,
+  EMAIL_INVALID_MESSAGE,
   EMAIL_UNAVAILABLE_MESSAGE,
   validateEmailField,
 } from "@/lib/checkEmailAvailability";
@@ -61,7 +62,7 @@ describe("validateEmailField", () => {
   });
 
   it("returns a format error before calling the API", async () => {
-    await expect(validateEmailField("not-an-email")).resolves.toBe("Enter a valid email");
+    await expect(validateEmailField("not-an-email")).resolves.toBe(EMAIL_INVALID_MESSAGE);
     expect(api.get).not.toHaveBeenCalled();
   });
 

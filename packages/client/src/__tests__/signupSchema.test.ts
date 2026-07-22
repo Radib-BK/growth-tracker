@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { signupFormSchema, TEAM_NAME_REQUIRED_MESSAGE } from "@/schemas/signupSchema";
+import {
+  SELECT_DEPARTMENT_MESSAGE,
+  signupFormSchema,
+  TEAM_NAME_REQUIRED_MESSAGE,
+} from "@/schemas/signupSchema";
 
 const base = {
   email: "test1@gmail.com",
@@ -39,7 +43,7 @@ describe("signupFormSchema teamName", () => {
     if (!result.success) {
       const messages = result.error.issues.map((i) => i.message);
       expect(messages).toContain(TEAM_NAME_REQUIRED_MESSAGE);
-      expect(messages).toContain("Select a department");
+      expect(messages).toContain(SELECT_DEPARTMENT_MESSAGE);
     }
   });
 

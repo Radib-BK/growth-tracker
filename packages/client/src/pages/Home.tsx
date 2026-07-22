@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-table";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/context/useAuth";
 import { Button } from "@/components/ui/button";
@@ -29,31 +30,32 @@ const EXPERIENCE_LEVELS = ["JUNIOR", "MID", "SENIOR"];
 
 const columnHelper = createColumnHelper<User>();
 
-const columns = [
-  columnHelper.accessor("email", { header: "Email" }),
-  columnHelper.accessor("role", { header: "Role" }),
-  columnHelper.accessor("department", { header: "Department" }),
-  columnHelper.accessor("experienceLevel", { header: "Experience" }),
-  columnHelper.accessor("teamName", {
-    header: "Team",
-    cell: (info) => info.getValue() ?? "—",
-    enableSorting: false,
-  }),
-  columnHelper.accessor("createdAt", {
-    header: "Joined",
-    cell: (info) => {
-      const value = info.getValue();
-      return value ? new Date(value).toLocaleDateString() : "—";
-    },
-  }),
-];
-
 const ALL = "__all__";
 const PAGE_SIZE = 5;
 
 function Home() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const columns = [
+    columnHelper.accessor("email", { header: t("home.columnEmail") }),
+    columnHelper.accessor("role", { header: t("home.columnRole") }),
+    columnHelper.accessor("department", { header: t("home.columnDepartment") }),
+    columnHelper.accessor("experienceLevel", { header: t("home.columnExperience") }),
+    columnHelper.accessor("teamName", {
+      header: t("home.columnTeam"),
+      cell: (info) => info.getValue() ?? "—",
+      enableSorting: false,
+    }),
+    columnHelper.accessor("createdAt", {
+      header: t("home.columnJoined"),
+      cell: (info) => {
+        const value = info.getValue();
+        return value ? new Date(value).toLocaleDateString() : "—";
+      },
+    }),
+  ];
 
   const [page, setPage] = useState(() => Number(searchParams.get("page")) || 1);
   const [role, setRole] = useState<string>(() => searchParams.get("role") || ALL);
@@ -111,7 +113,7 @@ function Home() {
         });
         if (!cancelled) setData(result);
       } catch {
-        if (!cancelled) setError("Failed to load users");
+        if (!cancelled) setError(t("home.failedToLoad"));
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -121,7 +123,7 @@ function Home() {
     return () => {
       cancelled = true;
     };
-  }, [page, role, department, experienceLevel, search, sortBy, sortOrder]);
+  }, [page, role, department, experienceLevel, search, sortBy, sortOrder, t]);
 
   const sorting: SortingState = [{ id: sortBy, desc: sortOrder === "desc" }];
   const pageSize = data?.pagination.pageSize ?? PAGE_SIZE;
@@ -158,27 +160,27 @@ function Home() {
     <div className="w-full max-w-4xl space-y-6 px-6 py-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-semibold text-2xl text-foreground">Home</h1>
+          <h1 className="font-semibold text-2xl text-foreground">{t("home.title")}</h1>
           {user && (
             <p className="text-muted-foreground" data-testid="user-email">
-              Signed in as {user.email}
+              {t("home.signedInAs", { email: user.email })}
             </p>
           )}
         </div>
         <Button type="button" data-testid="logout-btn" variant="outline" onClick={() => void logout()}>
-          Log out
+          {t("home.logout")}
         </Button>
       </div>
 
       <div className="space-y-4">
-        <h2 className="font-semibold text-lg text-foreground">Users</h2>
+        <h2 className="font-semibold text-lg text-foreground">{t("home.usersHeading")}</h2>
 
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="search">Search</Label>
+            <Label htmlFor="search">{t("home.searchLabel")}</Label>
             <Input
               id="search"
-              placeholder="Email or team name"
+              placeholder={t("home.searchPlaceholder")}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-56"
@@ -186,7 +188,7 @@ function Home() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label>Role</Label>
+            <Label>{t("home.roleLabel")}</Label>
             <Select
               value={role}
               onValueChange={(value) => {
@@ -196,7 +198,7 @@ function Home() {
             >
               <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>All roles</SelectItem>
+                <SelectItem value={ALL}>{t("home.allRoles")}</SelectItem>
                 {ROLES.map((r) => (
                   <SelectItem key={r} value={r}>{r}</SelectItem>
                 ))}
@@ -205,7 +207,7 @@ function Home() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label>Department</Label>
+            <Label>{t("home.departmentLabel")}</Label>
             <Select
               value={department}
               onValueChange={(value) => {
@@ -215,7 +217,7 @@ function Home() {
             >
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>All departments</SelectItem>
+                <SelectItem value={ALL}>{t("home.allDepartments")}</SelectItem>
                 {DEPARTMENTS.map((d) => (
                   <SelectItem key={d} value={d}>{d}</SelectItem>
                 ))}
@@ -224,7 +226,7 @@ function Home() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <Label>Experience</Label>
+            <Label>{t("home.experienceLabel")}</Label>
             <Select
               value={experienceLevel}
               onValueChange={(value) => {
@@ -234,7 +236,7 @@ function Home() {
             >
               <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={ALL}>All levels</SelectItem>
+                <SelectItem value={ALL}>{t("home.allLevels")}</SelectItem>
                 {EXPERIENCE_LEVELS.map((lvl) => (
                   <SelectItem key={lvl} value={lvl}>{lvl}</SelectItem>
                 ))}
@@ -250,7 +252,7 @@ function Home() {
           <table className="w-full text-sm">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id} className="border-b bg-muted/50 text-left">
+                <tr key={headerGroup.id} className="border-b bg-muted/50 text-start">
                   {headerGroup.headers.map((header) => {
                     const canSort = header.column.getCanSort();
                     const sortDirection = header.column.getIsSorted();
@@ -282,14 +284,14 @@ function Home() {
                   <td className="px-3 py-8 text-muted-foreground" colSpan={columns.length}>
                     <div className="flex items-center justify-center gap-2">
                       <Loader2 className="size-4 animate-spin" />
-                      <span>Loading...</span>
+                      <span>{t("home.loading")}</span>
                     </div>
                   </td>
                 </tr>
               )}
               {!isLoading && data?.users.length === 0 && (
                 <tr>
-                  <td className="px-3 py-4 text-muted-foreground" colSpan={columns.length}>No users found</td>
+                  <td className="px-3 py-4 text-muted-foreground" colSpan={columns.length}>{t("home.noUsers")}</td>
                 </tr>
               )}
               {!isLoading &&
@@ -309,7 +311,11 @@ function Home() {
         {data && (
           <div className="flex items-center justify-between text-muted-foreground text-sm">
             <span>
-              Page {data.pagination.page} of {data.pagination.totalPages} ({data.pagination.total} users)
+              {t("home.pageInfo", {
+                page: data.pagination.page,
+                totalPages: data.pagination.totalPages,
+                total: data.pagination.total,
+              })}
             </span>
             <div className="flex gap-2">
               <Button
@@ -318,7 +324,7 @@ function Home() {
                 disabled={!table.getCanPreviousPage()}
                 onClick={() => table.setPageIndex(0)}
               >
-                First
+                {t("home.first")}
               </Button>
               <Button
                 type="button"
@@ -326,7 +332,7 @@ function Home() {
                 disabled={!table.getCanPreviousPage()}
                 onClick={() => table.previousPage()}
               >
-                Previous
+                {t("home.previous")}
               </Button>
               {(() => {
                 const totalPages = data.pagination.totalPages;
@@ -352,7 +358,7 @@ function Home() {
                 disabled={!table.getCanNextPage()}
                 onClick={() => table.nextPage()}
               >
-                Next
+                {t("home.next")}
               </Button>
               <Button
                 type="button"
@@ -360,7 +366,7 @@ function Home() {
                 disabled={!table.getCanNextPage()}
                 onClick={() => table.setPageIndex(data.pagination.totalPages - 1)}
               >
-                Last
+                {t("home.last")}
               </Button>
             </div>
           </div>

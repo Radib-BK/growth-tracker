@@ -2,17 +2,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { isAxiosError } from "axios";
 import { useState } from "react";
 import { useForm, useFormState } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/useAuth";
+import { useLangPath } from "@/hooks/useLangPath";
 import { shownFieldError } from "@/lib/shownFieldError";
 import { loginFormSchema, type LoginFormValues } from "@/schemas/loginSchema";
 
 function RequiredMark() {
   return (
-    <span className="ml-0.5 text-destructive" aria-hidden="true">
+    <span className="ms-0.5 text-destructive" aria-hidden="true">
       *
     </span>
   );
@@ -21,6 +23,8 @@ function RequiredMark() {
 function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useTranslation();
+  const { path } = useLangPath();
   const [apiError, setApiError] = useState("");
 
   const { register, handleSubmit, getFieldState, control } = useForm<LoginFormValues>({
@@ -32,31 +36,31 @@ function Login() {
   const formState = useFormState({ control });
 
   const err = (name: keyof LoginFormValues) =>
-    shownFieldError(name, getFieldState, formState);
+    shownFieldError(name, getFieldState, formState, t);
 
   const onSubmit = handleSubmit(async (data) => {
     setApiError("");
 
     try {
       await login(data.email, data.password);
-      navigate("/");
+      navigate(path(""));
     } catch (error) {
       if (isAxiosError(error)) {
-        setApiError(error.response?.data?.message ?? "Login failed");
+        setApiError(error.response?.data?.message ?? t("login.loginFailedDefault"));
         return;
       }
-      setApiError("Login failed");
+      setApiError(t("login.loginFailedDefault"));
     }
   });
 
   return (
     <div className="w-full max-w-lg px-6 py-8">
-      <h1 className="mb-6 font-semibold text-2xl text-foreground">Log in</h1>
+      <h1 className="mb-6 font-semibold text-2xl text-foreground">{t("login.title")}</h1>
 
       <form data-testid="login-form" onSubmit={onSubmit} className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="email">
-            Email
+            {t("login.emailLabel")}
             <RequiredMark />
           </Label>
           <Input
@@ -73,7 +77,7 @@ function Login() {
 
         <div className="space-y-2">
           <Label htmlFor="password">
-            Password
+            {t("login.passwordLabel")}
             <RequiredMark />
           </Label>
           <Input
@@ -95,14 +99,14 @@ function Login() {
         )}
 
         <Button type="submit" data-testid="submit-btn" className="w-full">
-          Log in
+          {t("login.submit")}
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
-        <Link to="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
-          Sign up
+        {t("login.noAccount")}{" "}
+        <Link to={path("/signup")} className="font-medium text-foreground underline-offset-4 hover:underline">
+          {t("login.signupLink")}
         </Link>
       </p>
     </div>

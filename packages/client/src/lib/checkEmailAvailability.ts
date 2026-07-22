@@ -1,7 +1,9 @@
-import { emailFormatSchema } from "@/schemas/signupSchema";
+import { EMAIL_INVALID_MESSAGE, emailFormatSchema } from "@/schemas/signupSchema";
 import { api } from "@/lib/api";
 
-export const EMAIL_UNAVAILABLE_MESSAGE = "This email is already registered";
+export { EMAIL_INVALID_MESSAGE };
+
+export const EMAIL_UNAVAILABLE_MESSAGE = "errors.emailTaken";
 
 export async function checkEmailAvailability(email: string): Promise<boolean | null> {
   if (!emailFormatSchema.safeParse(email).success) return null;
@@ -18,7 +20,7 @@ export async function checkEmailAvailability(email: string): Promise<boolean | n
 
 export async function validateEmailField(email: string): Promise<string | true> {
   const parsed = emailFormatSchema.safeParse(email);
-  if (!parsed.success) return parsed.error.issues[0]?.message ?? "Enter a valid email";
+  if (!parsed.success) return parsed.error.issues[0]?.message ?? EMAIL_INVALID_MESSAGE;
 
   const available = await checkEmailAvailability(email);
   if (available === false) return EMAIL_UNAVAILABLE_MESSAGE;

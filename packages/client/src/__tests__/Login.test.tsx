@@ -68,7 +68,7 @@ describe("Login page", () => {
     expect(mockLogin).toHaveBeenCalledWith("test@company.com", "Secret123!");
 
     await vi.waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith("/");
+      expect(mockNavigate).toHaveBeenCalledWith("/en");
     });
   });
 

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { dayOptions, monthOptions, yearOptions } from "@/lib/birthdate";
 import {
   Select,
@@ -36,6 +37,7 @@ export function BirthdateSelects({
   monthInvalid,
   dayInvalid,
 }: Props) {
+  const { t } = useTranslation();
   const y = year ? Number(year) : 0;
   const m = month ? Number(month) : 0;
   const days = y && m ? dayOptions(y, m) : [];
@@ -46,11 +48,11 @@ export function BirthdateSelects({
         <SelectTrigger
           className="w-full"
           data-testid="birthdate-year"
-          aria-label="Birth year"
+          aria-label={t("signup.birthYearAria")}
           aria-invalid={yearInvalid}
           onBlur={onYearBlur}
         >
-          <SelectValue placeholder="Year" />
+          <SelectValue placeholder={t("signup.birthYearPlaceholder")} />
         </SelectTrigger>
         <SelectContent>
           {yearOptions().map((yr) => (
@@ -65,11 +67,11 @@ export function BirthdateSelects({
         <SelectTrigger
           className="w-full"
           data-testid="birthdate-month"
-          aria-label="Birth month"
+          aria-label={t("signup.birthMonthAria")}
           aria-invalid={monthInvalid}
           onBlur={onMonthBlur}
         >
-          <SelectValue placeholder="Month" />
+          <SelectValue placeholder={t("signup.birthMonthPlaceholder")} />
         </SelectTrigger>
         <SelectContent>
           {monthOptions().map(({ value, label }) => (
@@ -89,11 +91,11 @@ export function BirthdateSelects({
         <SelectTrigger
           className="w-full"
           data-testid="birthdate-day"
-          aria-label="Birth day"
+          aria-label={t("signup.birthDayAria")}
           aria-invalid={dayInvalid}
           onBlur={onDayBlur}
         >
-          <SelectValue placeholder="Day" />
+          <SelectValue placeholder={t("signup.birthDayPlaceholder")} />
         </SelectTrigger>
         <SelectContent>
           {days.map((d) => (
