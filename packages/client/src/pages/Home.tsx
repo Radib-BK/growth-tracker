@@ -5,7 +5,6 @@ import {
   useReactTable,
   type SortingState,
 } from "@tanstack/react-table";
-import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -20,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { listUsers } from "@/lib/usersApi";
 import type { ListUsersResponse } from "@/lib/usersApi";
 import type { User } from "@/lib/authApi";
@@ -39,14 +39,15 @@ function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const columns = [
-    columnHelper.accessor("email", { header: t("home.columnEmail") }),
-    columnHelper.accessor("role", { header: t("home.columnRole") }),
-    columnHelper.accessor("department", { header: t("home.columnDepartment") }),
-    columnHelper.accessor("experienceLevel", { header: t("home.columnExperience") }),
+    columnHelper.accessor("email", { header: t("home.columnEmail"), size: 220 }),
+    columnHelper.accessor("role", { header: t("home.columnRole"), size: 90 }),
+    columnHelper.accessor("department", { header: t("home.columnDepartment"), size: 130 }),
+    columnHelper.accessor("experienceLevel", { header: t("home.columnExperience"), size: 110 }),
     columnHelper.accessor("teamName", {
       header: t("home.columnTeam"),
       cell: (info) => info.getValue() ?? "—",
       enableSorting: false,
+      size: 130,
     }),
     columnHelper.accessor("createdAt", {
       header: t("home.columnJoined"),
@@ -54,6 +55,7 @@ function Home() {
         const value = info.getValue();
         return value ? new Date(value).toLocaleDateString() : "—";
       },
+      size: 110,
     }),
   ];
 
@@ -249,7 +251,7 @@ function Home() {
         {error && <p className="text-destructive text-sm">{error}</p>}
 
         <div className="overflow-x-auto rounded-md border border-input">
-          <table className="w-full text-sm">
+          <table className="w-full table-fixed text-sm">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id} className="border-b bg-muted/50 text-start">
@@ -257,7 +259,11 @@ function Home() {
                     const canSort = header.column.getCanSort();
                     const sortDirection = header.column.getIsSorted();
                     return (
-                      <th key={header.id} className="px-3 py-2 font-medium">
+                      <th
+                        key={header.id}
+                        className="px-3 py-2 font-medium"
+                        style={{ width: header.getSize() }}
+                      >
                         {canSort ? (
                           <button
                             type="button"
@@ -279,26 +285,35 @@ function Home() {
               ))}
             </thead>
             <tbody>
+              {isLoading &&
+                Array.from({ length: pageSize }, (_, rowIndex) => (
+                  <tr key={rowIndex} className="h-11 border-b last:border-b-0" aria-hidden="true">
+                    {table.getHeaderGroups()[0]?.headers.map((header) => (
+                      <td
+                        key={header.id}
+                        data-testid={`skeleton-cell-${header.column.id}-${rowIndex}`}
+                        className="px-3 py-2"
+                      >
+                        <Skeleton className="h-5 w-full" />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
               {isLoading && (
-                <tr>
-                  <td className="px-3 py-8 text-muted-foreground" colSpan={columns.length}>
-                    <div className="flex items-center justify-center gap-2">
-                      <Loader2 className="size-4 animate-spin" />
-                      <span>{t("home.loading")}</span>
-                    </div>
-                  </td>
+                <tr className="sr-only" role="status">
+                  <td colSpan={columns.length}>{t("home.loading")}</td>
                 </tr>
               )}
               {!isLoading && data?.users.length === 0 && (
-                <tr>
+                <tr className="h-11">
                   <td className="px-3 py-4 text-muted-foreground" colSpan={columns.length}>{t("home.noUsers")}</td>
                 </tr>
               )}
               {!isLoading &&
                 table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="border-b last:border-b-0">
+                  <tr key={row.id} className="h-11 border-b last:border-b-0">
                     {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id} className="px-3 py-2">
+                      <td key={cell.id} className="truncate px-3 py-2">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
