@@ -82,12 +82,13 @@ function Home() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (searchInput === search) return;
     const timeout = setTimeout(() => {
       setSearch(searchInput);
       setPage(1);
     }, 300);
     return () => clearTimeout(timeout);
-  }, [searchInput]);
+  }, [searchInput, search]);
 
   useEffect(() => {
     const params: Record<string, string> = {};
