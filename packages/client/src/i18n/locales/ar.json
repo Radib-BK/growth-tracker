@@ -78,6 +78,7 @@
     "noUsers": "لا يوجد مستخدمون",
     "failedToLoad": "فشل تحميل المستخدمين",
     "pageInfo": "صفحة {{page}} من {{totalPages}} ({{total}} مستخدم)",
+    "pageSizeLabel": "عدد الصفوف في الصفحة",
     "first": "الأولى",
     "previous": "السابق",
     "next": "التالي",

@@ -32,6 +32,7 @@ const columnHelper = createColumnHelper<User>();
 
 const ALL = "__all__";
 const PAGE_SIZE = 5;
+const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
 function Home() {
   const { user, logout } = useAuth();
@@ -60,6 +61,10 @@ function Home() {
   ];
 
   const [page, setPage] = useState(() => Number(searchParams.get("page")) || 1);
+  const [pageSize, setPageSize] = useState(() => {
+    const fromParams = Number(searchParams.get("pageSize"));
+    return PAGE_SIZE_OPTIONS.includes(fromParams) ? fromParams : PAGE_SIZE;
+  });
   const [role, setRole] = useState<string>(() => searchParams.get("role") || ALL);
   const [department, setDepartment] = useState<string>(() => searchParams.get("department") || ALL);
   const [experienceLevel, setExperienceLevel] = useState<string>(
@@ -87,6 +92,7 @@ function Home() {
   useEffect(() => {
     const params: Record<string, string> = {};
     if (page !== 1) params.page = String(page);
+    if (pageSize !== PAGE_SIZE) params.pageSize = String(pageSize);
     if (role !== ALL) params.role = role;
     if (department !== ALL) params.department = department;
     if (experienceLevel !== ALL) params.experienceLevel = experienceLevel;
@@ -94,7 +100,7 @@ function Home() {
     if (sortBy !== "createdAt") params.sortBy = sortBy;
     if (sortOrder !== "asc") params.sortOrder = sortOrder;
     setSearchParams(params, { replace: true });
-  }, [page, role, department, experienceLevel, search, sortBy, sortOrder, setSearchParams]);
+  }, [page, pageSize, role, department, experienceLevel, search, sortBy, sortOrder, setSearchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,7 +111,7 @@ function Home() {
       try {
         const result = await listUsers({
           page,
-          pageSize: PAGE_SIZE,
+          pageSize,
           role: role === ALL ? undefined : role,
           department: department === ALL ? undefined : department,
           experienceLevel: experienceLevel === ALL ? undefined : experienceLevel,
@@ -125,10 +131,9 @@ function Home() {
     return () => {
       cancelled = true;
     };
-  }, [page, role, department, experienceLevel, search, sortBy, sortOrder, t]);
+  }, [page, pageSize, role, department, experienceLevel, search, sortBy, sortOrder, t]);
 
   const sorting: SortingState = [{ id: sortBy, desc: sortOrder === "desc" }];
-  const pageSize = data?.pagination.pageSize ?? PAGE_SIZE;
 
   const table = useReactTable({
     data: data?.users ?? [],
@@ -324,14 +329,35 @@ function Home() {
         </div>
 
         {data && (
-          <div className="flex items-center justify-between text-muted-foreground text-sm">
-            <span>
-              {t("home.pageInfo", {
-                page: data.pagination.page,
-                totalPages: data.pagination.totalPages,
-                total: data.pagination.total,
-              })}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-3 text-muted-foreground text-sm">
+            <div className="flex flex-wrap items-center gap-4">
+              <span>
+                {t("home.pageInfo", {
+                  page: data.pagination.page,
+                  totalPages: data.pagination.totalPages,
+                  total: data.pagination.total,
+                })}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="pageSize" className="whitespace-nowrap text-muted-foreground">
+                  {t("home.pageSizeLabel")}
+                </Label>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(value) => {
+                    setPageSize(Number(value));
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger id="pageSize" className="w-18"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map((size) => (
+                      <SelectItem key={size} value={String(size)}>{size}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="flex gap-2">
               <Button
                 type="button"

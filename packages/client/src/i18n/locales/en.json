@@ -78,6 +78,7 @@
     "noUsers": "No users found",
     "failedToLoad": "Failed to load users",
     "pageInfo": "Page {{page}} of {{totalPages}} ({{total}} users)",
+    "pageSizeLabel": "Rows per page",
     "first": "First",
     "previous": "Previous",
     "next": "Next",
