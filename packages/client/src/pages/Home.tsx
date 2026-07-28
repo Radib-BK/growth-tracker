@@ -5,6 +5,7 @@ import {
   useReactTable,
   type SortingState,
 } from "@tanstack/react-table";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -21,7 +22,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { listUsers } from "@/lib/usersApi";
-import type { ListUsersResponse } from "@/lib/usersApi";
 import type { User } from "@/lib/authApi";
 
 const ROLES = ["LEARNER", "MANAGER"];
@@ -77,10 +77,6 @@ function Home() {
     () => (searchParams.get("sortOrder") === "desc" ? "desc" : "asc"),
   );
 
-  const [data, setData] = useState<ListUsersResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     if (searchInput === search) return;
     const timeout = setTimeout(() => {
@@ -103,36 +99,26 @@ function Home() {
     setSearchParams(params, { replace: true });
   }, [page, pageSize, role, department, experienceLevel, search, sortBy, sortOrder, setSearchParams]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const filters = {
+    page,
+    pageSize,
+    role: role === ALL ? undefined : role,
+    department: department === ALL ? undefined : department,
+    experienceLevel: experienceLevel === ALL ? undefined : experienceLevel,
+    search: search || undefined,
+    sortBy,
+    sortOrder,
+  };
 
-    async function fetchUsers() {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const result = await listUsers({
-          page,
-          pageSize,
-          role: role === ALL ? undefined : role,
-          department: department === ALL ? undefined : department,
-          experienceLevel: experienceLevel === ALL ? undefined : experienceLevel,
-          search: search || undefined,
-          sortBy,
-          sortOrder,
-        });
-        if (!cancelled) setData(result);
-      } catch {
-        if (!cancelled) setError(t("home.failedToLoad"));
-      } finally {
-        if (!cancelled) setIsLoading(false);
-      }
-    }
-
-    void fetchUsers();
-    return () => {
-      cancelled = true;
-    };
-  }, [page, pageSize, role, department, experienceLevel, search, sortBy, sortOrder, t]);
+  const {
+    data,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["users", filters],
+    queryFn: () => listUsers(filters),
+    placeholderData: keepPreviousData,
+  });
 
   const sorting: SortingState = [{ id: sortBy, desc: sortOrder === "desc" }];
 
@@ -254,7 +240,7 @@ function Home() {
 
         </div>
 
-        {error && <p className="text-destructive text-sm">{error}</p>}
+        {error && <p className="text-destructive text-sm">{t("home.failedToLoad")}</p>}
 
         <div className="overflow-x-auto rounded-md border border-input">
           <table className="w-full table-fixed text-sm">
