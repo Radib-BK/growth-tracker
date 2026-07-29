@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TanStack Query, a plain intro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Inter:wght@400;500;600&family=Caveat:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F2EEE4;
+    --paper-2:#FBF9F3;
+    --ink:#26221E;
+    --ink-soft:#6B655C;
+    --hl:#FFE45C;
+    --pen:#2B4FC4;
+    --fresh:#1F9D57;
+    --stale:#DC841B;
+    --line:#D8D2C4;
+    --display:'Bricolage Grotesque',sans-serif;
+    --body:'Inter',sans-serif;
+    --hand:'Caveat',cursive;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--body);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .deck{position:relative;width:100vw;height:100vh}
+
+  .slide{
+    position:absolute;inset:0;
+    display:none;
+    padding:7vh 9vw 10vh;
+    flex-direction:column;
+    justify-content:center;
+    opacity:0;transition:opacity .4s ease;
+  }
+  .slide.active{display:flex;opacity:1}
+
+  h1{font-family:var(--display);font-weight:700;line-height:.98;letter-spacing:-.02em}
+  h2{
+    font-family:var(--display);font-weight:600;
+    font-size:clamp(1.7rem,3.7vw,3rem);
+    line-height:1.06;letter-spacing:-.015em;
+    margin-bottom:1.5rem;max-width:22ch;
+  }
+  p.lead{font-size:clamp(1rem,1.5vw,1.24rem);color:var(--ink-soft);line-height:1.58;max-width:56ch}
+  p.lead b{color:var(--ink);font-weight:600}
+
+  /* highlighter marker */
+  .hl{
+    background:linear-gradient(100deg, transparent .4%, var(--hl) 1.4%, var(--hl) 97%, transparent 99.5%);
+    -webkit-box-decoration-break:clone;box-decoration-break:clone;
+    padding:.02em .12em;border-radius:1px;color:inherit;
+  }
+  .pen{color:var(--pen);font-weight:600}
+  .green{color:var(--fresh);font-weight:600}
+  .amber{color:var(--stale);font-weight:600}
+
+  /* handwritten margin note */
+  .note{
+    font-family:var(--hand);font-size:clamp(1.3rem,2.1vw,1.75rem);
+    color:var(--pen);line-height:1.15;
+  }
+  .arrow{display:inline-block;vertical-align:middle}
+  .arrow path{stroke:var(--pen);stroke-width:2.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+  /* pen underline under a word */
+  .uline{position:relative;white-space:nowrap}
+  .uline svg{position:absolute;left:-2%;bottom:-.42em;width:104%;height:.5em;overflow:visible}
+  .uline path{stroke:var(--pen);stroke-width:3;fill:none;stroke-linecap:round}
+
+  /* status tag, hand-circled */
+  .tag{
+    display:inline-flex;align-items:center;gap:.5rem;
+    font-family:var(--body);font-weight:600;font-size:.92rem;
+    padding:.3rem .7rem;border-radius:999px;background:var(--paper-2);
+    border:1px solid var(--line);
+  }
+  .tag .dot{width:9px;height:9px;border-radius:50%}
+  .tag.f{color:var(--fresh)} .tag.f .dot{background:var(--fresh)}
+  .tag.s{color:var(--stale)} .tag.s .dot{background:var(--stale)}
+  .tag.p{color:var(--pen)} .tag.p .dot{background:var(--pen)}
+
+  /* code, styled like a taped-in snippet */
+  pre{
+    font-family:var(--mono);font-size:clamp(.72rem,1.02vw,.88rem);line-height:1.7;
+    background:var(--paper-2);
+    border:1px solid var(--line);border-radius:10px;
+    padding:1.1rem 1.3rem;color:#3a352e;overflow:auto;
+    box-shadow:3px 5px 0 rgba(38,34,30,.07);
+  }
+  .k{color:var(--pen)} .str{color:var(--fresh)} .fn{color:#B4690E}
+  .com{color:#a49b8c;font-style:italic} .pu{color:#8a8272}
+
+  .two{display:grid;grid-template-columns:1.05fr .95fr;gap:2.4rem;align-items:center}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem}
+
+  /* plain cards, no dashboard feel */
+  .card{background:var(--paper-2);border:1px solid var(--line);border-radius:12px;padding:1.5rem 1.6rem}
+  .card h3{font-family:var(--display);font-weight:600;font-size:1.2rem;margin-bottom:.2rem}
+  .card .sub{font-family:var(--hand);font-size:1.25rem;margin-bottom:1rem}
+  .card.client .sub{color:var(--pen)} .card.server .sub{color:var(--stale)}
+  .card ul{list-style:none}
+  .card li{font-size:.95rem;color:var(--ink-soft);line-height:1.5;padding-left:1.1rem;position:relative;margin-bottom:.5rem}
+  .card li::before{content:"–";position:absolute;left:0;color:var(--line)}
+
+  .fails{display:flex;flex-direction:column;gap:.55rem;margin-top:.3rem}
+  .fail{font-size:1rem;display:flex;gap:.6rem;align-items:baseline}
+  .fail .x{color:var(--stale);font-weight:700}
+  .fail em{color:var(--ink-soft);font-style:normal;font-size:.86rem}
+
+  /* pagination row of pages */
+  .pages{display:flex;gap:.55rem;margin:.2rem 0 1.2rem;flex-wrap:wrap}
+  .pg{
+    width:44px;height:44px;border-radius:10px;border:1px solid var(--line);
+    background:var(--paper-2);display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:.95rem;color:var(--ink-soft);position:relative;
+  }
+  .pg.cached{border-color:var(--fresh);color:var(--fresh);background:#eef8f1}
+  .pg.cached::after{content:"cached";position:absolute;bottom:-1.35rem;left:50%;transform:translateX(-50%);font-family:var(--hand);font-size:.9rem;color:var(--fresh);white-space:nowrap}
+  .pg.now{border-color:var(--pen);color:var(--pen);background:#eef1fb;font-weight:600}
+  .pg.now::after{content:"you're here";position:absolute;bottom:-1.35rem;left:50%;transform:translateX(-50%);font-family:var(--hand);font-size:.9rem;color:var(--pen);white-space:nowrap}
+
+  .stack{display:flex;flex-direction:column;gap:.9rem;margin-top:.4rem}
+  .row{display:flex;gap:.8rem;align-items:flex-start}
+  .row .b{font-family:var(--display);font-weight:600;color:var(--pen);font-size:1.05rem;min-width:1.4rem}
+  .row .txt{font-size:1rem;color:var(--ink);line-height:1.45}
+  .row .txt em{color:var(--ink-soft);font-style:normal;font-size:.88rem;display:block;margin-top:.15rem}
+
+  /* slide 4: server vs snapshot drift */
+  .drift{display:flex;flex-direction:column;gap:.9rem}
+  .rec{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:12px;
+    padding:1.1rem 1.3rem;display:flex;align-items:center;justify-content:space-between;
+  }
+  .rec .who{font-family:var(--display);font-weight:600;font-size:1.05rem}
+  .rec .who span{display:block;font-family:var(--body);font-weight:400;font-size:.82rem;color:var(--ink-soft)}
+  .rec .ver{font-family:var(--mono);font-size:1.1rem;padding:.25rem .6rem;border-radius:8px}
+  .rec.truth{border-color:var(--fresh)} .rec.truth .ver{background:#eef8f1;color:var(--fresh)}
+  .rec.snap{border-color:var(--stale)} .rec.snap .ver{background:#fbf1e4;color:var(--stale)}
+  .drift-note{text-align:center;font-family:var(--hand);font-size:1.3rem;color:var(--pen)}
+
+  /* slide 7: the triggers panel */
+  .panel{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:1.4rem 1.5rem}
+  .panel .cap{font-family:var(--hand);font-size:1.45rem;color:var(--pen);margin-bottom:.8rem}
+  .trig{display:flex;align-items:center;gap:.7rem;padding:.55rem 0;border-bottom:1px dashed var(--line);font-size:1rem}
+  .trig:last-child{border-bottom:none}
+  .trig .ic{width:26px;height:26px;flex:none;border-radius:7px;background:#eef1fb;color:var(--pen);display:flex;align-items:center;justify-content:center;font-size:.9rem}
+  .trig b{color:var(--ink);font-weight:600} .trig em{font-style:normal;color:var(--ink-soft);font-size:.85rem}
+
+  /* slide 8: fake network log */
+  .netlog{background:#2a2723;border-radius:12px;padding:1.1rem 1.2rem;font-family:var(--mono);font-size:.82rem;box-shadow:3px 5px 0 rgba(38,34,30,.12)}
+  .netlog .hd{color:#a49b8c;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.7rem;display:flex;justify-content:space-between}
+  .req{display:flex;justify-content:space-between;align-items:center;padding:.3rem 0;color:#d9d3c7}
+  .req .g{color:#7fb98f}
+  .req.dup{color:#f0a85a}
+  .req .tag2{font-family:var(--body);font-size:.68rem;background:#4a3b28;color:#f0a85a;padding:.1rem .4rem;border-radius:5px}
+
+  /* slide 10: recap checklist */
+  .recap{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:1.4rem 1.5rem}
+  .recap .cap{font-family:var(--hand);font-size:1.5rem;color:var(--pen);margin-bottom:.7rem}
+  .chk{display:flex;align-items:baseline;gap:.65rem;padding:.5rem 0;font-size:1rem;border-bottom:1px dashed var(--line)}
+  .chk:last-child{border-bottom:none}
+  .chk .tick{color:var(--fresh);font-weight:700}
+  .chk code{font-family:var(--mono);font-size:.85rem;color:var(--pen)}
+
+  /* title presenter credit */
+  .credit{margin-top:2.6rem;border-left:3px solid var(--pen);padding-left:1rem}
+  .credit .nm{font-family:var(--display);font-weight:600;font-size:1.3rem;color:var(--ink)}
+  .credit .rl{font-size:.95rem;color:var(--ink-soft);margin-top:.1rem}
+
+  @media(max-width:840px){
+    .two,.cols{grid-template-columns:1fr;gap:1.4rem}
+    .slide{padding:6vh 7vw 11vh}
+  }
+
+  /* chrome */
+  .chrome{
+    position:absolute;left:0;right:0;bottom:0;z-index:10;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:1.1rem 2.2rem;color:var(--ink-soft);font-size:.85rem;
+  }
+  .brand{font-family:var(--hand);font-size:1.4rem;color:var(--ink)}
+  .nav{display:flex;align-items:center;gap:.5rem}
+  .nav button{
+    font-family:var(--body);color:var(--ink);background:var(--paper-2);
+    border:1px solid var(--line);width:36px;height:36px;border-radius:9px;
+    cursor:pointer;font-size:1.1rem;line-height:1;transition:.15s;
+  }
+  .nav button:hover{border-color:var(--pen);color:var(--pen)}
+  .nav button:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+  .counter{font-family:var(--mono);min-width:60px;text-align:center;font-size:.8rem}
+
+  .progress{position:absolute;bottom:0;left:0;height:3px;background:var(--pen);transition:width .4s ease;z-index:11}
+  @media(prefers-reduced-motion:reduce){.slide,.progress{transition:none}}
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+  <div class="progress" id="progress"></div>
+
+  <!-- 1 TITLE -->
+  <section class="slide active">
+    <p class="note" style="margin-bottom:1.2rem">a plain intro to</p>
+    <h1 style="font-size:clamp(2.8rem,8vw,6rem)">TanStack Query</h1>
+    <p class="lead" style="margin-top:1.4rem">Your data really lives on the server. TanStack Query keeps
+      <span class="hl">a synced copy in the browser</span>, so your UI reads it fast and stays up to date.</p>
+    <p class="note" style="margin-top:2rem">
+      <svg class="arrow" width="46" height="26" viewBox="0 0 46 26"><path d="M3 20 C 14 8, 30 6, 42 12 M42 12 L34 8 M42 12 L37 20"/></svg>
+      so you stop rewriting the same fetch logic everywhere
+    </p>
+    <div class="credit">
+      <div class="nm">Radib Bin Kabir</div>
+      <div class="rl">Jr. Software Engineer, DSi</div>
+    </div>
+  </section>
+
+  <!-- 2 TWO KINDS OF STATE -->
+  <section class="slide">
+    <h2>First, two <span class="uline">kinds of state<svg viewBox="0 0 200 10" preserveAspectRatio="none"><path d="M2 6 C 50 2, 120 9, 198 4"/></svg></span></h2>
+    <div class="cols">
+      <div class="card client">
+        <h3>Client state</h3>
+        <div class="sub">you own it</div>
+        <ul>
+          <li>Is the modal open, what is typed in the box</li>
+          <li>Instant and always correct</li>
+          <li>Only your app can change it</li>
+        </ul>
+        <p style="margin-top:1rem"><span class="tag p"><span class="dot"></span>useState is enough</span></p>
+      </div>
+      <div class="card server">
+        <h3>Server state</h3>
+        <div class="sub">you only borrow it</div>
+        <ul>
+          <li>Lives on a machine you do not control</li>
+          <li>You can only reach it later, over the network</li>
+          <li>Other people change it behind your back</li>
+        </ul>
+        <p style="margin-top:1rem"><span class="tag s"><span class="dot"></span>this one needs a cache</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 THE PAIN -->
+  <section class="slide">
+    <h2>Doing it by hand looks fine<br>until you count what breaks</h2>
+    <div class="two">
+      <pre><span class="k">const</span> [data, setData] <span class="pu">=</span> <span class="fn">useState</span>(<span class="k">null</span>)
+<span class="k">const</span> [loading, setLoading] <span class="pu">=</span> <span class="fn">useState</span>(<span class="k">true</span>)
+<span class="k">const</span> [error, setError] <span class="pu">=</span> <span class="fn">useState</span>(<span class="k">null</span>)
+
+<span class="fn">useEffect</span>(() <span class="pu">=></span> {
+  <span class="fn">fetch</span>(<span class="str">'/api/todos'</span>)
+    .<span class="fn">then</span>(r <span class="pu">=></span> r.<span class="fn">json</span>())
+    .<span class="fn">then</span>(setData)
+}, [])</pre>
+      <div class="fails">
+        <div class="fail"><span class="x">✕</span><div>You rewrite this in every component <em>pure boilerplate</em></div></div>
+        <div class="fail"><span class="x">✕</span><div>No cache <em>refetches every time you revisit</em></div></div>
+        <div class="fail"><span class="x">✕</span><div>Duplicate requests <em>three components, three calls</em></div></div>
+        <div class="fail"><span class="x">✕</span><div>Race conditions <em>the slow response overwrites the fresh one</em></div></div>
+        <div class="fail"><span class="x">✕</span><div>You refetch by hand after every change</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 THE REFRAME -->
+  <section class="slide">
+    <h2>The one idea to take home</h2>
+    <div class="two">
+      <div>
+        <p class="lead" style="font-size:clamp(1.15rem,1.9vw,1.45rem);color:var(--ink)">
+          Your component is holding a <span class="hl">snapshot</span>, and that snapshot <span class="amber">will</span> get out of date.</p>
+        <p class="lead" style="margin-top:1.4rem">So the real question stops being "how do I fetch data"
+          and becomes: <b>how do I hold it, notice when it is stale, and re-sync at the right time?</b></p>
+        <p class="note" style="margin-top:1.6rem">
+          <svg class="arrow" width="40" height="24" viewBox="0 0 40 24"><path d="M2 6 C 10 18, 24 20, 36 14 M36 14 L30 18 M36 14 L34 10"/></svg>
+          answering that <i>is</i> a caching system
+        </p>
+      </div>
+      <div class="drift">
+        <div class="rec truth"><div class="who">The server <span>the real, current truth</span></div><div class="ver">v3</div></div>
+        <div class="drift-note">↑ moved on without telling you</div>
+        <div class="rec snap"><div class="who">Your component <span>the copy you fetched earlier</span></div><div class="ver">v1</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 useQuery -->
+  <section class="slide">
+    <h2>Reading data: one hook,<br>keyed by a name</h2>
+    <div class="two">
+      <pre><span class="k">const</span> { data, isPending, error } <span class="pu">=</span> <span class="fn">useQuery</span>({
+  queryKey<span class="pu">:</span> [<span class="str">'todos'</span>],
+  queryFn<span class="pu">:</span> () <span class="pu">=></span> <span class="fn">fetch</span>(<span class="str">'/api/todos'</span>)
+              .<span class="fn">then</span>(r <span class="pu">=></span> r.<span class="fn">json</span>()),
+})</pre>
+      <div>
+        <p class="lead">The <span class="pen">queryKey</span> is just an <span class="hl">address in the cache</span>. Everyone who asks for the same key shares the same data.</p>
+        <p class="note" style="margin-top:1.4rem;color:var(--fresh)">
+          → caching, request dedup, and sharing, all for free
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 FRESH VS STALE -->
+  <section class="slide">
+    <h2>Caching doesn't stop data<br>going stale. It <span class="hl">tracks</span> it.</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Any borrowed copy can be wrong a second after you read it. Nothing can fix that.</p>
+        <p class="lead" style="margin-top:1rem">So "stale" becomes a <b>label on the cache entry</b>, not a silent problem in your app.</p>
+        <div style="margin-top:1.4rem;display:flex;gap:.7rem;flex-wrap:wrap">
+          <span class="tag f"><span class="dot"></span>fresh</span>
+          <span class="tag s"><span class="dot"></span>stale</span>
+        </div>
+      </div>
+      <pre><span class="fn">useQuery</span>({
+  queryKey<span class="pu">:</span> [<span class="str">'todos'</span>],
+  queryFn<span class="pu">:</span> fetchTodos,
+  <span class="com">// count as fresh for 60s</span>
+  staleTime<span class="pu">:</span> <span class="str">60_000</span>,
+})</pre>
+    </div>
+  </section>
+
+  <!-- 7 TRIGGERS -->
+  <section class="slide">
+    <h2>Hitting staleTime does <span class="amber">not</span> refetch on its own</h2>
+    <div class="two">
+      <div>
+        <p class="lead">It only <b>arms</b> the query. A refetch runs when a trigger fires <i>and</i> the entry is stale right then.</p>
+        <div class="stack" style="margin-top:1.2rem">
+          <div class="row"><span class="b green">1</span><div class="txt">Data loads, marked <span class="green">fresh</span> <em>no refetching inside staleTime</em></div></div>
+          <div class="row"><span class="b amber">2</span><div class="txt">Timer passes, flips to <span class="amber">stale</span> <em>screen does not change yet</em></div></div>
+          <div class="row"><span class="b pen">3</span><div class="txt">A trigger fires <em>see the list on the right</em></div></div>
+          <div class="row"><span class="b green">4</span><div class="txt">Refetch, then the UI updates <em>a re-render, no browser refresh</em></div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="cap">what counts as a trigger</div>
+        <div class="trig"><span class="ic">↺</span><div><b>Component remounts</b> <em>you navigate back to the page</em></div></div>
+        <div class="trig"><span class="ic">◉</span><div><b>Window regains focus</b> <em>you tab away and come back</em></div></div>
+        <div class="trig"><span class="ic">⇅</span><div><b>Network reconnects</b> <em>wifi drops then returns</em></div></div>
+        <div class="trig"><span class="ic">⚡</span><div><b>You invalidate it</b> <em>invalidateQueries or refetch()</em></div></div>
+        <p class="note" style="margin-top:.9rem;font-size:1.15rem">on a timer instead? add <span class="pen">refetchInterval</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 PAGINATION PROBLEM -->
+  <section class="slide">
+    <h2>Now the real case:<br>a paginated table</h2>
+    <div class="two">
+      <div>
+        <p class="lead">Server-side pages, like your TanStack Table. A naive setup wastes work.</p>
+        <div class="pages" style="margin-top:1.2rem">
+          <div class="pg">1</div><div class="pg">2</div><div class="pg now">3</div><div class="pg">4</div><div class="pg">5</div>
+        </div>
+        <div class="fails" style="margin-top:1.4rem">
+          <div class="fail"><span class="x">✕</span><div>Every click hits the server, spinner each time</div></div>
+          <div class="fail"><span class="x">✕</span><div>Paging back <b style="color:var(--ink)">fetches again</b> <em>data you just saw</em></div></div>
+          <div class="fail"><span class="x">✕</span><div>The table flashes empty on every switch</div></div>
+          <div class="fail"><span class="x">✕</span><div>Fast clicks can arrive out of order</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="netlog">
+          <div class="hd"><span>Network</span><span>as you click 1 → 2 → 3 → 1</span></div>
+          <div class="req"><span><span class="g">GET</span> /users?page=1</span><span>200</span></div>
+          <div class="req"><span><span class="g">GET</span> /users?page=2</span><span>200</span></div>
+          <div class="req"><span><span class="g">GET</span> /users?page=3</span><span>200</span></div>
+          <div class="req dup"><span><span class="g">GET</span> /users?page=1</span><span class="tag2">again!</span></div>
+        </div>
+        <p class="note" style="margin-top:1.1rem;color:var(--stale)">
+          you keep paying for the same data over and over</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 PAGINATION SOLUTION -->
+  <section class="slide">
+    <h2>How TanStack Query<br>makes paging feel instant</h2>
+    <div class="two">
+      <div>
+        <p class="lead" style="margin-bottom:1rem">Put the page and sort <b>inside the key</b>. Each page becomes its own cache entry.</p>
+        <div class="pages">
+          <div class="pg cached">1</div><div class="pg cached">2</div><div class="pg now">3</div><div class="pg">4</div><div class="pg">5</div>
+        </div>
+        <p class="lead" style="margin-top:1.6rem">Visited pages are cached, so paging back is <span class="hl">instant, no request</span>. And <span class="pen">keepPreviousData</span> holds the old rows on screen while the next page loads, so the table never flashes empty.</p>
+      </div>
+      <div>
+<pre><span class="k">import</span> { keepPreviousData } <span class="k">from</span>
+  <span class="str">'@tanstack/react-query'</span>
+
+<span class="k">const</span> { data, isPlaceholderData } <span class="pu">=</span>
+  <span class="fn">useQuery</span>({
+    queryKey<span class="pu">:</span> [<span class="str">'users'</span>, { page, sortBy }],
+    queryFn<span class="pu">:</span> () <span class="pu">=></span> <span class="fn">fetchUsers</span>({ page, sortBy }),
+    placeholderData<span class="pu">:</span> keepPreviousData,
+  })</pre>
+        <p class="note" style="margin-top:1rem;color:var(--fresh)">
+          bonus: <span class="pen">prefetchQuery</span> the next page so it's ready before they click
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 TAKEAWAY -->
+  <section class="slide">
+    <h2>So, what did we buy?</h2>
+    <div class="two">
+      <div>
+        <p class="lead" style="font-size:clamp(1.12rem,1.8vw,1.4rem);color:var(--ink)">
+          It never promises <span class="green">fresh-forever</span> data. It promises your UI stays
+          <span class="hl">eventually in sync</span> with the server, and does the syncing for you.</p>
+        <p class="lead" style="margin-top:1.4rem">You turn <span style="color:var(--ink-soft)">"fetch data"</span> into <span class="pen">"cache and sync server state"</span>, and the rest follows: less code, fewer bugs, snappy pages.</p>
+        <p class="note" style="margin-top:1.8rem">questions? <svg class="arrow" width="40" height="22" viewBox="0 0 40 22"><path d="M4 8 C 14 2, 28 4, 36 12 M36 12 L30 9 M36 12 L31 17"/></svg></p>
+      </div>
+      <div class="recap">
+        <div class="cap">what you now know</div>
+        <div class="chk"><span class="tick">✓</span><div>Server state is a borrowed copy that goes stale</div></div>
+        <div class="chk"><span class="tick">✓</span><div><code>useQuery</code> caches data by a <code>queryKey</code></div></div>
+        <div class="chk"><span class="tick">✓</span><div><code>staleTime</code> arms refetching, triggers fire it</div></div>
+        <div class="chk"><span class="tick">✓</span><div>Paging keys each page, so revisits are free</div></div>
+        <div class="chk"><span class="tick">✓</span><div><code>keepPreviousData</code> + <code>prefetchQuery</code> feel instant</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="chrome">
+    <div class="brand">TanStack Query</div>
+    <div class="nav">
+      <button id="prev" aria-label="Previous slide">‹</button>
+      <span class="counter" id="counter">1 / 10</span>
+      <button id="next" aria-label="Next slide">›</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const counter = document.getElementById('counter');
+  const progress = document.getElementById('progress');
+  let i = 0;
+  function show(n){
+    i = Math.max(0, Math.min(slides.length-1, n));
+    slides.forEach((s,idx)=>s.classList.toggle('active', idx===i));
+    counter.textContent = (i+1)+' / '+slides.length;
+    progress.style.width = ((i+1)/slides.length*100)+'%';
+  }
+  document.getElementById('next').onclick = ()=>show(i+1);
+  document.getElementById('prev').onclick = ()=>show(i-1);
+  document.addEventListener('keydown', e=>{
+    if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(i+1);}
+    if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(i-1);}
+    if(e.key==='Home') show(0);
+    if(e.key==='End') show(slides.length-1);
+  });
+  show(0);
+</script>
+</body>
+</html>
