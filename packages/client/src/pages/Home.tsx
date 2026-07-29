@@ -113,12 +113,15 @@ function Home() {
   const {
     data,
     isLoading,
+    isPlaceholderData,
     error,
   } = useQuery({
     queryKey: ["users", filters],
     queryFn: () => listUsers(filters),
     placeholderData: keepPreviousData,
   });
+
+  const showSkeleton = isLoading || isPlaceholderData;
 
   const sorting: SortingState = [{ id: sortBy, desc: sortOrder === "desc" }];
 
@@ -277,7 +280,7 @@ function Home() {
               ))}
             </thead>
             <tbody>
-              {isLoading &&
+              {showSkeleton &&
                 Array.from({ length: pageSize }, (_, rowIndex) => (
                   <tr key={rowIndex} className="h-11 border-b last:border-b-0" aria-hidden="true">
                     {table.getHeaderGroups()[0]?.headers.map((header) => (
@@ -291,17 +294,17 @@ function Home() {
                     ))}
                   </tr>
                 ))}
-              {isLoading && (
+              {showSkeleton && (
                 <tr className="sr-only" role="status">
                   <td colSpan={columns.length}>{t("home.loading")}</td>
                 </tr>
               )}
-              {!isLoading && data?.users.length === 0 && (
+              {!showSkeleton && data?.users.length === 0 && (
                 <tr className="h-11">
                   <td className="px-3 py-4 text-muted-foreground" colSpan={columns.length}>{t("home.noUsers")}</td>
                 </tr>
               )}
-              {!isLoading &&
+              {!showSkeleton &&
                 table.getRowModel().rows.map((row) => (
                   <tr key={row.id} className="h-11 border-b last:border-b-0">
                     {row.getVisibleCells().map((cell) => (
