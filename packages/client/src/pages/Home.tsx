@@ -5,7 +5,6 @@ import {
   useReactTable,
   type SortingState,
 } from "@tanstack/react-table";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
@@ -21,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { listUsers } from "@/lib/usersApi";
+import { useUsers } from "@/hooks/useUsers";
 import type { User } from "@/lib/authApi";
 
 const ROLES = ["LEARNER", "MANAGER"];
@@ -115,11 +114,7 @@ function Home() {
     isLoading,
     isPlaceholderData,
     error,
-  } = useQuery({
-    queryKey: ["users", filters],
-    queryFn: () => listUsers(filters),
-    placeholderData: keepPreviousData,
-  });
+  } = useUsers(filters);
 
   const showSkeleton = isLoading || isPlaceholderData;
 
