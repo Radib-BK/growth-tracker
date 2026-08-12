@@ -137,17 +137,47 @@
   .row .txt em{color:var(--ink-soft);font-style:normal;font-size:.88rem;display:block;margin-top:.15rem}
 
   /* slide 4: server vs snapshot drift */
-  .drift{display:flex;flex-direction:column;gap:.9rem}
-  .rec{
-    background:var(--paper-2);border:1px solid var(--line);border-radius:12px;
-    padding:1.1rem 1.3rem;display:flex;align-items:center;justify-content:space-between;
+  .drift{display:flex;flex-direction:column;gap:.75rem}
+  .tbl{background:var(--paper-2);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .tbl.truth{border-color:var(--fresh)} .tbl.snap{border-color:var(--stale)}
+  .thd{
+    display:flex;align-items:baseline;justify-content:space-between;gap:.8rem;
+    padding:.55rem .9rem;border-bottom:1px solid var(--line);
+    font-family:var(--display);font-weight:600;font-size:1rem;
   }
-  .rec .who{font-family:var(--display);font-weight:600;font-size:1.05rem}
-  .rec .who span{display:block;font-family:var(--body);font-weight:400;font-size:.82rem;color:var(--ink-soft)}
-  .rec .ver{font-family:var(--mono);font-size:1.1rem;padding:.25rem .6rem;border-radius:8px}
-  .rec.truth{border-color:var(--fresh)} .rec.truth .ver{background:#eef8f1;color:var(--fresh)}
-  .rec.snap{border-color:var(--stale)} .rec.snap .ver{background:#fbf1e4;color:var(--stale)}
-  .drift-note{text-align:center;font-family:var(--hand);font-size:1.3rem;color:var(--pen)}
+  .thd span{font-family:var(--body);font-weight:400;font-size:.78rem;color:var(--ink-soft)}
+  .trow{
+    display:flex;align-items:center;justify-content:space-between;gap:.8rem;
+    padding:.32rem .9rem;border-bottom:1px dashed var(--line);
+    font-family:var(--mono);font-size:.82rem;color:var(--ink-soft);
+  }
+  .trow:last-child{border-bottom:none}
+  .trow.new{background:#eef8f1;color:var(--fresh)}
+  .trow.new em{font-family:var(--hand);font-style:normal;font-size:1rem}
+  .trow.gap{font-family:var(--hand);font-size:1.05rem;color:var(--stale);justify-content:flex-start}
+  .drift-note{text-align:center;font-family:var(--hand);font-size:1.25rem;color:var(--pen)}
+
+  /* slide 5: shared query diagram */
+  .reuse{display:flex;flex-direction:column;align-items:center}
+  .qbox{
+    background:var(--paper-2);border:1.5px solid var(--pen);border-radius:12px;
+    padding:.85rem 1.4rem;text-align:center;box-shadow:3px 5px 0 rgba(43,79,196,.12);
+  }
+  .qbox .nm{font-family:var(--mono);font-size:1rem;color:var(--pen)}
+  .qbox .sub{font-family:var(--body);font-size:.8rem;color:var(--ink-soft);margin-top:.25rem}
+  .fork{width:min(100%,400px);height:auto;display:block}
+  .fork path{stroke:var(--pen);stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .consumers{display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:min(100%,440px)}
+  .cbox{background:var(--paper-2);border:1px solid var(--line);border-radius:12px;padding:.8rem .9rem;text-align:center}
+  .cbox .nm{font-family:var(--mono);font-size:.88rem;color:var(--ink)}
+  .cbox .sub{font-family:var(--hand);font-size:1.1rem;color:var(--ink-soft);margin-top:.1rem}
+  pre.tight{font-size:clamp(.64rem,.86vw,.76rem);line-height:1.45;padding:.9rem 1.1rem}
+  /* slide 5 fits a tall two-column body, so it breathes differently */
+  .s5{padding:10vh 9vw 13vh}
+  .s5 h2{margin-bottom:1.1rem}
+  .s5 .two{align-items:start;gap:2.1rem}
+  .s5 .lead{font-size:clamp(.9rem,1.2vw,1.04rem);line-height:1.5;max-width:44ch;margin-top:1.1rem}
+  .s12{padding-top:11vh}
 
   /* slide 7: the triggers panel */
   .panel{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:1.4rem 1.5rem}
@@ -165,10 +195,25 @@
   .req.dup{color:#f0a85a}
   .req .tag2{font-family:var(--body);font-size:.68rem;background:#4a3b28;color:#f0a85a;padding:.1rem .4rem;border-radius:5px}
 
-  /* slide 10: recap checklist */
+  /* slide 10: what useQuery returns */
+  .rets{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;align-items:start}
+  .retg{background:var(--paper-2);border:1px solid var(--line);border-radius:11px;padding:.7rem .85rem}
+  .retg.focus{border-color:var(--pen)}
+  .retg .cap{font-family:var(--hand);font-size:1.15rem;color:var(--pen);margin-bottom:.3rem;line-height:1.05}
+  .ret{padding:.3rem 0;border-bottom:1px dashed var(--line)}
+  .ret:last-child{border-bottom:none}
+  .ret b{display:block;font-family:var(--mono);font-weight:500;font-size:.78rem;color:var(--ink)}
+  .ret span{display:block;font-size:.74rem;color:var(--ink-soft);line-height:1.3;margin-top:.08rem}
+  .ret.hot b{color:var(--pen)}
+
+  /* slide 11: mutation flow */
+  .mut-note{font-family:var(--hand);font-size:1.2rem;color:var(--ink-soft);margin-top:1rem;line-height:1.25}
+  .mut-note b{font-family:var(--mono);font-size:.9rem;color:var(--pen);font-weight:500}
+
+  /* slide 12: recap checklist */
   .recap{background:var(--paper-2);border:1px solid var(--line);border-radius:14px;padding:1.4rem 1.5rem}
   .recap .cap{font-family:var(--hand);font-size:1.5rem;color:var(--pen);margin-bottom:.7rem}
-  .chk{display:flex;align-items:baseline;gap:.65rem;padding:.5rem 0;font-size:1rem;border-bottom:1px dashed var(--line)}
+  .chk{display:flex;align-items:baseline;gap:.65rem;padding:.4rem 0;font-size:.96rem;border-bottom:1px dashed var(--line)}
   .chk:last-child{border-bottom:none}
   .chk .tick{color:var(--fresh);font-weight:700}
   .chk code{font-family:var(--mono);font-size:.85rem;color:var(--pen)}
@@ -180,6 +225,7 @@
 
   @media(max-width:840px){
     .two,.cols{grid-template-columns:1fr;gap:1.4rem}
+    .rets{grid-template-columns:repeat(2,1fr)}
     .slide{padding:6vh 7vw 11vh}
   }
 
@@ -195,8 +241,10 @@
     font-family:var(--body);color:var(--ink);background:var(--paper-2);
     border:1px solid var(--line);width:36px;height:36px;border-radius:9px;
     cursor:pointer;font-size:1.1rem;line-height:1;transition:.15s;
+    opacity:.35;
   }
-  .nav button:hover{border-color:var(--pen);color:var(--pen)}
+  .nav button:hover{border-color:var(--pen);color:var(--pen);opacity:1}
+  .nav button:focus-visible{opacity:1}
   .nav button:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
   .counter{font-family:var(--mono);min-width:60px;text-align:center;font-size:.8rem}
 
@@ -289,27 +337,58 @@
         </p>
       </div>
       <div class="drift">
-        <div class="rec truth"><div class="who">The server <span>the real, current truth</span></div><div class="ver">v3</div></div>
-        <div class="drift-note">↑ moved on without telling you</div>
-        <div class="rec snap"><div class="who">Your component <span>the copy you fetched earlier</span></div><div class="ver">v1</div></div>
+        <div class="tbl truth">
+          <div class="thd">Server <span>users table · now</span></div>
+          <div class="trow"><span>Farhan</span></div>
+          <div class="trow"><span>Tajri</span></div>
+          <div class="trow new"><span>Sawon</span><em>an admin just added them</em></div>
+        </div>
+        <div class="drift-note">↑ nobody told your app</div>
+        <div class="tbl snap">
+          <div class="thd">Your component <span>fetched 1 minute ago</span></div>
+          <div class="trow"><span>Farhan</span></div>
+          <div class="trow"><span>Tajri</span></div>
+          <div class="trow gap">still showing 2 users</div>
+        </div>
       </div>
     </div>
   </section>
 
   <!-- 5 useQuery -->
-  <section class="slide">
-    <h2>Reading data: one hook,<br>keyed by a name</h2>
+  <section class="slide s5">
+    <h2>Write the query once,<br>call it from anywhere</h2>
     <div class="two">
-      <pre><span class="k">const</span> { data, isPending, error } <span class="pu">=</span> <span class="fn">useQuery</span>({
-  queryKey<span class="pu">:</span> [<span class="str">'todos'</span>],
-  queryFn<span class="pu">:</span> () <span class="pu">=></span> <span class="fn">fetch</span>(<span class="str">'/api/todos'</span>)
-              .<span class="fn">then</span>(r <span class="pu">=></span> r.<span class="fn">json</span>()),
-})</pre>
+      <pre class="tight"><span class="com">// queries/user.js — the one place it lives</span>
+<span class="k">const</span> <span class="fn">getUser</span> <span class="pu">=</span> () <span class="pu">=></span>
+  <span class="fn">fetch</span>(<span class="str">'/api/me'</span>).<span class="fn">then</span>(r <span class="pu">=></span> r.<span class="fn">json</span>())
+
+<span class="k">export function</span> <span class="fn">useUser</span>() {
+  <span class="k">return</span> <span class="fn">useQuery</span>({
+    queryKey<span class="pu">:</span> [<span class="str">'user'</span>],
+    queryFn<span class="pu">:</span> getUser,
+  })
+}
+
+<span class="com">// Navbar.jsx</span>
+<span class="k">const</span> { data<span class="pu">:</span> user } <span class="pu">=</span> <span class="fn">useUser</span>()
+
+<span class="com">// ProfilePage.jsx</span>
+<span class="k">const</span> { data<span class="pu">:</span> user, isPending } <span class="pu">=</span> <span class="fn">useUser</span>()</pre>
       <div>
-        <p class="lead">The <span class="pen">queryKey</span> is just an <span class="hl">address in the cache</span>. Everyone who asks for the same key shares the same data.</p>
-        <p class="note" style="margin-top:1.4rem;color:var(--fresh)">
-          → caching, request dedup, and sharing, all for free
-        </p>
+        <div class="reuse">
+          <div class="qbox">
+            <div class="nm">useUser()</div>
+            <div class="sub">useQuery · key <span class="pen">['user']</span></div>
+          </div>
+          <svg class="fork" viewBox="0 0 300 62" role="img" aria-label="useUser is called from two components">
+            <path d="M150 0 V18 M60 18 H240 M60 18 V48 M240 18 V48 M54 40 L60 50 L66 40 M234 40 L240 50 L246 40"/>
+          </svg>
+          <div class="consumers">
+            <div class="cbox"><div class="nm">&lt;Navbar/&gt;</div><div class="sub">avatar + name</div></div>
+            <div class="cbox"><div class="nm">&lt;ProfilePage/&gt;</div><div class="sub">full profile</div></div>
+          </div>
+        </div>
+        <p class="lead" style="margin-top:1.3rem">Two components far apart on the page, both needing the same user. Same <span class="pen">queryKey</span> means the same <span class="hl">address in the cache</span>, so the second one does not fire a second request.</p>
       </div>
     </div>
   </section>
@@ -417,8 +496,66 @@
     </div>
   </section>
 
-  <!-- 10 TAKEAWAY -->
+  <!-- 10 WHAT useQuery RETURNS -->
   <section class="slide">
+    <h2>What <span class="hl">useQuery</span> hands back</h2>
+    <div class="rets">
+      <div class="retg">
+        <div class="cap">what came back</div>
+        <div class="ret"><b>data</b><span>the cached result, undefined until the first success</span></div>
+        <div class="ret"><b>error</b><span>the thrown error, null otherwise</span></div>
+        <div class="ret"><b>dataUpdatedAt</b><span>last success timestamp, for "updated 2 min ago"</span></div>
+      </div>
+      <div class="retg focus">
+        <div class="cap">am I waiting?</div>
+        <div class="ret hot"><b>isPending</b><span>no data yet, first load for this key</span></div>
+        <div class="ret hot"><b>isFetching</b><span>a request is in flight, background refetches included</span></div>
+        <div class="ret"><b>isLoading</b><span>isPending + isFetching, the true first load</span></div>
+        <div class="ret"><b>isRefetching</b><span>fetching while data is already on screen</span></div>
+      </div>
+      <div class="retg">
+        <div class="cap">how did it end?</div>
+        <div class="ret"><b>isSuccess / isError</b><span>the two terminal states</span></div>
+        <div class="ret"><b>status</b><span>the same thing as one string: pending | error | success</span></div>
+      </div>
+      <div class="retg">
+        <div class="cap">everyday extras</div>
+        <div class="ret"><b>isPlaceholderData</b><span>you are seeing the previous page, dim it and disable Next</span></div>
+        <div class="ret"><b>isStale</b><span>past staleTime, armed for the next trigger</span></div>
+        <div class="ret"><b>refetch()</b><span>run it again by hand, a Refresh button</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 MUTATIONS -->
+  <section class="slide">
+    <h2>Writing data: mutate,<br>then <span class="hl">invalidate</span></h2>
+    <div class="two">
+      <div>
+        <p class="lead">A query runs on its own. A write should not, so it gets its own hook and fires when the user submits.</p>
+        <p class="lead" style="margin-top:1rem">The catch: the write succeeds, and <b>your own cache is now the stale copy</b>. The drifting table again, except this time you caused it.</p>
+        <p class="lead" style="margin-top:1rem"><span class="pen">invalidateQueries</span> is how you say <i>this key is out of date</i>. Everything on screen refetches itself.</p>
+      </div>
+      <div>
+<pre><span class="k">const</span> queryClient <span class="pu">=</span> <span class="fn">useQueryClient</span>()
+
+<span class="k">const</span> { mutate, isPending } <span class="pu">=</span> <span class="fn">useMutation</span>({
+  mutationFn<span class="pu">:</span> (user) <span class="pu">=></span> api.<span class="fn">post</span>(<span class="str">'/users'</span>, user),
+  onSuccess<span class="pu">:</span> () <span class="pu">=></span> {
+    queryClient.<span class="fn">invalidateQueries</span>({ queryKey<span class="pu">:</span> [<span class="str">'users'</span>] })
+  },
+})
+
+<span class="pu">&lt;</span><span class="fn">button</span> onClick<span class="pu">=</span>{() <span class="pu">=></span> <span class="fn">mutate</span>(form)} disabled<span class="pu">=</span>{isPending}<span class="pu">></span>
+  {isPending <span class="pu">?</span> <span class="str">'Saving…'</span> <span class="pu">:</span> <span class="str">'Add user'</span>}
+<span class="pu">&lt;/</span><span class="fn">button</span><span class="pu">></span></pre>
+        <p class="mut-note">the key is a <span class="pen">prefix</span>, so one <b>['users']</b> covers page 1, page 2, every sort you cached</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 TAKEAWAY -->
+  <section class="slide s12">
     <h2>So, what did we buy?</h2>
     <div class="two">
       <div>
@@ -435,6 +572,8 @@
         <div class="chk"><span class="tick">✓</span><div><code>staleTime</code> arms refetching, triggers fire it</div></div>
         <div class="chk"><span class="tick">✓</span><div>Paging keys each page, so revisits are free</div></div>
         <div class="chk"><span class="tick">✓</span><div><code>keepPreviousData</code> + <code>prefetchQuery</code> feel instant</div></div>
+        <div class="chk"><span class="tick">✓</span><div><code>isPending</code> is not <code>isFetching</code></div></div>
+        <div class="chk"><span class="tick">✓</span><div>Writes go through <code>useMutation</code>, then invalidate</div></div>
       </div>
     </div>
   </section>
@@ -443,7 +582,7 @@
     <div class="brand">TanStack Query</div>
     <div class="nav">
       <button id="prev" aria-label="Previous slide">‹</button>
-      <span class="counter" id="counter">1 / 10</span>
+      <span class="counter" id="counter">1 / 12</span>
       <button id="next" aria-label="Next slide">›</button>
     </div>
   </div>
