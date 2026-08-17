@@ -263,7 +263,7 @@
     <p class="lead" style="margin-top:1.4rem">Your data really lives on the server. TanStack Query keeps
       <span class="hl">a synced copy in the browser</span>, so your UI reads it fast and stays up to date.</p>
     <p class="note" style="margin-top:2rem">
-      <svg class="arrow" width="46" height="26" viewBox="0 0 46 26"><path d="M3 20 C 14 8, 30 6, 42 12 M42 12 L34 8 M42 12 L37 20"/></svg>
+      <svg class="arrow" width="46" height="26" viewBox="0 0 46 26"><path d="M3 20 C 14 8, 30 6, 42 12"/><g transform="rotate(40 42 12)"><path d="M42 12 L34 8 M42 12 L37 20"/></g></svg>
       so you stop rewriting the same fetch logic everywhere
     </p>
     <div class="credit">
@@ -339,15 +339,15 @@
       <div class="drift">
         <div class="tbl truth">
           <div class="thd">Server <span>users table · now</span></div>
-          <div class="trow"><span>Farhan</span></div>
-          <div class="trow"><span>Tajri</span></div>
-          <div class="trow new"><span>Sawon</span><em>an admin just added them</em></div>
+          <div class="trow"><span>User 1</span></div>
+          <div class="trow"><span>User 2</span></div>
+          <div class="trow new"><span>User 3</span><em>an admin just added them</em></div>
         </div>
         <div class="drift-note">↑ nobody told your app</div>
         <div class="tbl snap">
           <div class="thd">Your component <span>fetched 1 minute ago</span></div>
-          <div class="trow"><span>Farhan</span></div>
-          <div class="trow"><span>Tajri</span></div>
+          <div class="trow"><span>User 1</span></div>
+          <div class="trow"><span>User 2</span></div>
           <div class="trow gap">still showing 2 users</div>
         </div>
       </div>
@@ -432,7 +432,7 @@
         <div class="trig"><span class="ic">↺</span><div><b>Component remounts</b> <em>you navigate back to the page</em></div></div>
         <div class="trig"><span class="ic">◉</span><div><b>Window regains focus</b> <em>you tab away and come back</em></div></div>
         <div class="trig"><span class="ic">⇅</span><div><b>Network reconnects</b> <em>wifi drops then returns</em></div></div>
-        <div class="trig"><span class="ic">⚡</span><div><b>You invalidate it</b> <em>invalidateQueries or refetch()</em></div></div>
+        <div class="trig"><span class="ic">↯</span><div><b>You invalidate it</b> <em>invalidateQueries or refetch()</em></div></div>
         <p class="note" style="margin-top:.9rem;font-size:1.15rem">on a timer instead? add <span class="pen">refetchInterval</span></p>
       </div>
     </div>
@@ -563,7 +563,7 @@
           It never promises <span class="green">fresh-forever</span> data. It promises your UI stays
           <span class="hl">eventually in sync</span> with the server, and does the syncing for you.</p>
         <p class="lead" style="margin-top:1.4rem">You turn <span style="color:var(--ink-soft)">"fetch data"</span> into <span class="pen">"cache and sync server state"</span>, and the rest follows: less code, fewer bugs, snappy pages.</p>
-        <p class="note" style="margin-top:1.8rem">questions? <svg class="arrow" width="40" height="22" viewBox="0 0 40 22"><path d="M4 8 C 14 2, 28 4, 36 12 M36 12 L30 9 M36 12 L31 17"/></svg></p>
+        <p class="note" style="margin-top:1.8rem">questions? <svg class="arrow" width="40" height="22" viewBox="0 0 40 22"><path d="M4 8 C 14 2, 28 4, 36 12"/><g transform="rotate(40 36 12)"><path d="M36 12 L30 9 M36 12 L31 17"/></g></svg></p>
       </div>
       <div class="recap">
         <div class="cap">what you now know</div>

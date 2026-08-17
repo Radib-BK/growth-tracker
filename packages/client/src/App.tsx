@@ -3,6 +3,9 @@ import { GuestRoute } from '@/components/GuestRoute';
 import { LocaleLayout } from '@/components/LocaleLayout';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { detectBrowserLanguage } from '@/lib/i18n-routes';
+import { DemoLayout } from '@/demo/DemoLayout';
+import DemoReading from '@/demo/pages/DemoReading';
+import DemoWriting from '@/demo/pages/DemoWriting';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
@@ -15,6 +18,11 @@ function App() {
       <div className="flex w-full justify-center px-4 py-8">
         <Routes>
           <Route path="/" element={rootRedirect} />
+          {/* public, no auth and no language prefix, for the presentation */}
+          <Route path="/demo" element={<DemoLayout />}>
+            <Route index element={<DemoReading />} />
+            <Route path="writing" element={<DemoWriting />} />
+          </Route>
           <Route path="/:lang" element={<LocaleLayout />}>
             <Route
               index
