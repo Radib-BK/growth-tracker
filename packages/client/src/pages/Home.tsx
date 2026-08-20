@@ -8,7 +8,7 @@ import {
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSearchParams } from "react-router-dom";
-import { useAuth } from "@/context/useAuth";
+import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,7 +34,6 @@ const PAGE_SIZE = 5;
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
 function Home() {
-  const { user, logout } = useAuth();
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -150,19 +149,7 @@ function Home() {
 
   return (
     <div className="w-full max-w-4xl space-y-6 px-6 py-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-semibold text-2xl text-foreground">{t("home.title")}</h1>
-          {user && (
-            <p className="text-muted-foreground" data-testid="user-email">
-              {t("home.signedInAs", { email: user.email })}
-            </p>
-          )}
-        </div>
-        <Button type="button" data-testid="logout-btn" variant="outline" onClick={() => void logout()}>
-          {t("home.logout")}
-        </Button>
-      </div>
+      <Navbar />
 
       <div className="space-y-4">
         <h2 className="font-semibold text-lg text-foreground">{t("home.usersHeading")}</h2>

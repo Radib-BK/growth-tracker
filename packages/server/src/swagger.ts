@@ -331,6 +331,53 @@ export const swaggerOptions: Options = {
           },
         },
       },
+      "/api/users/me": {
+        patch: {
+          tags: ["Users"],
+          summary: "Update the logged-in user's own profile",
+          description:
+            "Partially updates the current user. Only teamName, bio, and addresses may be changed here — " +
+            "any other field (role, department, experienceLevel, email, etc.) is rejected. " +
+            "When addresses is provided, it fully replaces the user's existing address list — " +
+            "resend every address you want to keep. Requires a Bearer access token.",
+          security: [{ bearerAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    teamName: { type: "string", maxLength: 100, example: "Platform Team" },
+                    bio:      { type: "string", maxLength: 250, example: "I love learning React." },
+                    addresses: {
+                      type: "array",
+                      items: { $ref: "#/components/schemas/AddressInput" },
+                      description: "Full replacement list — omit to leave addresses unchanged.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Updated user",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: { user: { $ref: "#/components/schemas/User" } },
+                  },
+                },
+              },
+            },
+            "400": { description: "Validation error, disallowed field, or no valid fields provided" },
+            "401": { description: "Unauthorized" },
+          },
+        },
+      },
       "/api/auth/check-email": {
         get: {
           tags: ["Auth"],

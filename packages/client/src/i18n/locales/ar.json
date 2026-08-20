@@ -4,6 +4,22 @@
     "languageEnglish": "English",
     "languageArabic": "العربية"
   },
+  "nav": {
+    "profile": "الملف الشخصي"
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "email": "البريد الإلكتروني",
+    "role": "الدور",
+    "department": "القسم",
+    "experience": "الخبرة",
+    "birthdate": "تاريخ الميلاد",
+    "teamNameLabel": "اسم الفريق",
+    "bioLabel": "نبذة",
+    "save": "حفظ التغييرات",
+    "saving": "جارٍ الحفظ...",
+    "updateFailed": "فشل تحديث الملف الشخصي"
+  },
   "login": {
     "title": "تسجيل الدخول",
     "emailLabel": "البريد الإلكتروني",

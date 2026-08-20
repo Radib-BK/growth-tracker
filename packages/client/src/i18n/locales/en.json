@@ -4,6 +4,22 @@
     "languageEnglish": "English",
     "languageArabic": "العربية"
   },
+  "nav": {
+    "profile": "Profile"
+  },
+  "profile": {
+    "title": "Profile",
+    "email": "Email",
+    "role": "Role",
+    "department": "Department",
+    "experience": "Experience",
+    "birthdate": "Birthdate",
+    "teamNameLabel": "Team name",
+    "bioLabel": "Bio",
+    "save": "Save changes",
+    "saving": "Saving...",
+    "updateFailed": "Failed to update profile"
+  },
   "login": {
     "title": "Log in",
     "emailLabel": "Email",

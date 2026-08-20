@@ -8,6 +8,7 @@ import DemoReading from '@/demo/pages/DemoReading';
 import DemoWriting from '@/demo/pages/DemoWriting';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
+import Profile from '@/pages/Profile';
 import Signup from '@/pages/Signup';
 
 function App() {
@@ -29,6 +30,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Home />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               }
             />

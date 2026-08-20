@@ -47,7 +47,7 @@ function isBlankAddress(value: unknown): boolean {
   );
 }
 
-const addressSchema = z
+export const addressSchema = z
   .object({
     label:   z.string().min(1).max(100),
     street1: z.string().min(1).max(200),

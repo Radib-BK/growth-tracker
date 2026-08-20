@@ -1,5 +1,14 @@
 import { api } from "@/lib/api";
 
+export type Address = {
+  id: string;
+  label: string;
+  street1: string;
+  street2?: string | null;
+  city: string;
+  zipCode: number;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -10,6 +19,7 @@ export type User = {
   bio?: string | null;
   birthdate?: string;
   createdAt?: string;
+  addresses?: Address[];
 };
 
 export type SignupPayload = {

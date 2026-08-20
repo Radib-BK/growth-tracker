@@ -322,3 +322,106 @@ describe("GET /api/users", () => {
     expect(res.body.errors.sortOrder).toBeDefined();
   });
 });
+
+describe("PATCH /api/users/me", () => {
+  it("returns 401 with no token", async () => {
+    const res = await request(app).patch("/api/users/me").send({ bio: "Hi" });
+    expect(res.status).toBe(401);
+  });
+
+  it("updates teamName and bio for the logged-in user", async () => {
+    const token = await signupAndGetToken();
+
+    const res = await request(app)
+      .patch("/api/users/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ teamName: "New Team", bio: "New bio" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.teamName).toBe("New Team");
+    expect(res.body.user.bio).toBe("New bio");
+    expect(res.body.user.passwordHash).toBeUndefined();
+  });
+
+  it("ignores nothing — rejects disallowed fields like role or email", async () => {
+    const token = await signupAndGetToken();
+
+    const res = await request(app)
+      .patch("/api/users/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ role: "MANAGER", email: "hacker@test.growthtracker.local" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when the body has no valid fields", async () => {
+    const token = await signupAndGetToken();
+
+    const res = await request(app)
+      .patch("/api/users/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({});
+
+    expect(res.status).toBe(400);
+  });
+
+  it("does not let a user update another user's profile", async () => {
+    const tokenA = await signupAndGetToken();
+    await signupAndGetToken({ ...basePayload, email: email("users-test-other") });
+
+    const res = await request(app)
+      .patch("/api/users/me")
+      .set("Authorization", `Bearer ${tokenA}`)
+      .send({ bio: "Only mine changes" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.email).toBe(basePayload.email);
+  });
+
+  it("replaces the user's addresses with the provided list", async () => {
+    const token = await signupAndGetToken({
+      ...basePayload,
+      addresses: [{ label: "Home", street1: "1 First St", city: "Springfield", zipCode: 11111 }],
+    });
+
+    const res = await request(app)
+      .patch("/api/users/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        addresses: [
+          { label: "Work", street1: "2 Second Ave", city: "Shelbyville", zipCode: 22222 },
+          { label: "Cabin", street1: "3 Third Rd", city: "Ogdenville", zipCode: 33333 },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.addresses).toHaveLength(2);
+    expect(res.body.user.addresses.map((a: { label: string }) => a.label).sort()).toEqual(["Cabin", "Work"]);
+  });
+
+  it("clears addresses when given an empty array", async () => {
+    const token = await signupAndGetToken({
+      ...basePayload,
+      addresses: [{ label: "Home", street1: "1 First St", city: "Springfield", zipCode: 11111 }],
+    });
+
+    const res = await request(app)
+      .patch("/api/users/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ addresses: [] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.user.addresses).toEqual([]);
+  });
+
+  it("returns 400 for an invalid address entry", async () => {
+    const token = await signupAndGetToken();
+
+    const res = await request(app)
+      .patch("/api/users/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ addresses: [{ label: "", street1: "1 First St", city: "Springfield", zipCode: 11111 }] });
+
+    expect(res.status).toBe(400);
+  });
+});
