@@ -16,6 +16,8 @@ const EXPIRY_BUFFER_MS = 10_000;
 let isRefreshing = false;
 let refreshQueue: Array<{ resolve: (token: string) => void; reject: (error: unknown) => void }> = [];
 
+type RetriableRequestConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+
 type AuthHandlers = {
   onTokenRefreshed?: (token: string) => void;
   onAuthFailed?: () => void;
@@ -86,8 +88,9 @@ async function refreshAccessToken(): Promise<string> {
   } catch (error) {
     processRefreshQueue(error, null);
     clearAccessToken();
+    // No redirect here on purpose: onAuthFailed clears the store, and ProtectedRoute
+    // navigates to the language-prefixed /login off the back of that.
     authHandlers.onAuthFailed?.();
-    window.location.assign("/login");
     throw error;
   } finally {
     isRefreshing = false;
@@ -104,6 +107,10 @@ api.interceptors.request.use(async (config) => {
     try {
       token = await refreshAccessToken();
     } catch {
+      // The session is already torn down. Still send the request (it may be a public
+      // endpoint), but mark it so the 401 handler below doesn't retry the refresh
+      // we just watched fail.
+      (config as RetriableRequestConfig)._retry = true;
       return config;
     }
   }
@@ -117,7 +124,7 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as RetriableRequestConfig;
 
     if (
       error.response?.status !== 401 ||

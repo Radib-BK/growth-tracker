@@ -7,10 +7,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/context/useAuth";
 import { useLangPath } from "@/hooks/useLangPath";
 import { shownFieldError } from "@/lib/shownFieldError";
 import { loginFormSchema, type LoginFormValues } from "@/schemas/loginSchema";
+import { useAuthStore } from "@/store/authStore";
 
 function RequiredMark() {
   return (
@@ -22,7 +22,7 @@ function RequiredMark() {
 
 function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login } = useAuthStore();
   const { t } = useTranslation();
   const { path } = useLangPath();
   const [apiError, setApiError] = useState("");

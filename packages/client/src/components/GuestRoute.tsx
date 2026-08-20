@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "@/context/useAuth";
 import { useLangPath } from "@/hooks/useLangPath";
+import { useAuthStore } from "@/store/authStore";
 
 export function GuestRoute({ children }: { children: ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuthStore();
   const { t } = useTranslation();
   const { path } = useLangPath();
 

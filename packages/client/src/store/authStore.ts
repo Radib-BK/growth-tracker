@@ -72,8 +72,6 @@ export const useAuthStore = create<AuthState>()(
   ),
 );
 
-// Wired once at module load so the axios interceptor in lib/api.ts can push
-// token-refresh / hard-logout events into the store without importing it back.
 setAuthHandlers({
   onTokenRefreshed: (token) =>
     useAuthStore.setState({ accessToken: token }, false, "auth/tokenRefreshed"),

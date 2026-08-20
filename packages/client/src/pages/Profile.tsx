@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/context/useAuth";
 import { useLangPath } from "@/hooks/useLangPath";
 import { useUpdateProfile } from "@/hooks/useUpdateProfile";
+import { useAuthStore } from "@/store/authStore";
 
 type AddressEntry = {
   key: string;
@@ -25,7 +25,7 @@ function isBlankAddress(a: AddressEntry) {
 }
 
 function Profile() {
-  const { user } = useAuth();
+  const { user } = useAuthStore();
   const { t } = useTranslation();
   const { mutate, isPending, error } = useUpdateProfile();
   const navigate = useNavigate();

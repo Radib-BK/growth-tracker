@@ -10,7 +10,6 @@ export function useUpdateProfile() {
     mutationFn: (payload: UpdateMePayload) => updateMe(payload),
     onSuccess: ({ user }) => {
       setUser(user);
-      // The users table on Home also renders teamName/bio, so keep it fresh.
       void queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });

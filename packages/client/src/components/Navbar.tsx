@@ -2,11 +2,11 @@ import { UserRound } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/useAuth";
 import { useLangPath } from "@/hooks/useLangPath";
+import { useAuthStore } from "@/store/authStore";
 
 export function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuthStore();
   const { t } = useTranslation();
   const { path } = useLangPath();
 

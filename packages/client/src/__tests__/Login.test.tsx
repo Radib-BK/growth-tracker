@@ -13,15 +13,18 @@ vi.mock("react-router-dom", async (importOriginal) => {
   return { ...actual, useNavigate: () => mockNavigate };
 });
 
-vi.mock("@/context/useAuth", () => ({
-  useAuth: () => ({
-    login: mockLogin,
-    logout: vi.fn(),
-    user: null,
-    accessToken: null,
-    isAuthenticated: false,
-    isLoading: false,
-  }),
+vi.mock("@/store/authStore", () => ({
+  useAuthStore: (selector?: (state: Record<string, unknown>) => unknown) => {
+    const state = {
+      login: mockLogin,
+      logout: vi.fn(),
+      user: null,
+      accessToken: null,
+      isAuthenticated: false,
+      isLoading: false,
+    };
+    return selector ? selector(state) : state;
+  },
 }));
 
 function renderLogin(initialEntries: string[] = ["/login"]) {
