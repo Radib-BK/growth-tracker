@@ -54,9 +54,6 @@ function HandRolledTable() {
         <Button size="sm" variant="outline" onClick={() => setAsc((v) => !v)}>
           salary {asc ? "asc" : "desc"}
         </Button>
-        <span className="text-xs text-neutral-500">
-          and that is already 20 lines of useMemo for two features
-        </span>
       </Controls>
       <Table>
         <TableHeader>

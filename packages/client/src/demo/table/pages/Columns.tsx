@@ -59,7 +59,7 @@ const columns = [
     header: "Status",
     cell: (ctx) => <StatusCell status={ctx.getValue()} />,
   }),
-
+  
   // 4. cell gets the whole context: value, row, column and the table itself.
   col.accessor("salary", {
     header: () => <span className="block text-right">Salary</span>,
@@ -173,11 +173,12 @@ export default function Columns() {
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
+  console.log(table.getHeaderGroups());
 
   return (
     <Lesson
-      title="Columns and rows"
-      tagline="A column definition answers two questions: where does the value come from (the accessor) and how does it look (the renderers). Rows you never define at all - they come from your data array, one row per item."
+    title="Columns and rows"
+    tagline="A column definition answers two questions: where does the value come from (the accessor) and how does it look (the renderers). Rows you never define at all - they come from your data array, one row per item."
       snippets={[
         { label: "columns.tsx", code: snippet, highlight: [4, 5, 6, 7, 8, 9, 11, 12, 13, 18, 19] },
         { label: "render.tsx", code: renderSnippet, highlight: [1, 2, 3, 4, 5] },
