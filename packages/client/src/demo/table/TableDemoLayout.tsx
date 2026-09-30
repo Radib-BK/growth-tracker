@@ -17,6 +17,7 @@ const lessons = [
   { to: "/demo/table/expanding", label: "Expanding", hint: "sub rows and detail panels" },
   { to: "/demo/table/selection", label: "Row selection", hint: "checkboxes, ids, bulk actions" },
   { to: "/demo/table/grouping", label: "Grouping", hint: "aggregate rows" },
+  { to: "/demo/table/virtualization", label: "Virtualization", hint: "10k rows, few DOM nodes" },
   { to: "/demo/table/kitchen-sink", label: "Kitchen sink", hint: "everything, one instance" },
 ];
 

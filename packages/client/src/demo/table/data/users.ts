@@ -299,3 +299,47 @@ export const currency = new Intl.NumberFormat("en-US", {
 });
 
 export const fullName = (u: User) => `${u.firstName} ${u.lastName}`;
+
+/* ------------------------------------------------------------------ */
+/* Bulk rows, for the virtualization lesson only                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 55 hand written people is the right size for reading a table, and far too
+ * small to show why virtualization matters - the browser renders 55 rows
+ * without complaining. So the virtualization lesson needs thousands.
+ *
+ * Rather than invent a second shape, this recycles the real rows above and
+ * varies them: every generated person is a genuine User, so the same columns,
+ * filters and formatters keep working.
+ *
+ * It is a function, not a const, because only one lesson wants 10.000 rows and
+ * nobody else should pay to build them on import.
+ */
+export function makeManyUsers(count: number): User[] {
+  const seeds = flatUsers;
+  const out: User[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const seed = seeds[i % seeds.length];
+    // shift the borrowed values so each copy is distinguishable, not a clone
+    const lastName = `${seed.lastName}${i < seeds.length ? "" : `-${Math.floor(i / seeds.length)}`}`;
+
+    out.push({
+      ...seed,
+      id: i + 1,
+      lastName,
+      email: `${seed.firstName}.${lastName}${i}@northwind.io`.toLowerCase().replace(/\s+/g, ""),
+      role: roles[i % roles.length],
+      department: departments[i % departments.length],
+      status: statuses[i % statuses.length],
+      salary: 60000 + ((i * 137) % 120000),
+      projects: i % 25,
+      // sub rows and notes would only be noise in a 10.000 row scroll
+      reports: undefined,
+      notes: undefined,
+    });
+  }
+
+  return out;
+}

@@ -18,6 +18,7 @@ import TablePinning from '@/demo/table/pages/Pinning';
 import TableExpanding from '@/demo/table/pages/Expanding';
 import TableSelection from '@/demo/table/pages/Selection';
 import TableGrouping from '@/demo/table/pages/Grouping';
+import TableVirtualization from '@/demo/table/pages/Virtualization';
 import TableKitchenSink from '@/demo/table/pages/KitchenSink';
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
@@ -46,6 +47,7 @@ function App() {
             <Route path="expanding" element={<TableExpanding />} />
             <Route path="selection" element={<TableSelection />} />
             <Route path="grouping" element={<TableGrouping />} />
+            <Route path="virtualization" element={<TableVirtualization />} />
             <Route path="kitchen-sink" element={<TableKitchenSink />} />
           </Route>
           <Route path="/demo" element={<DemoLayout />}>
