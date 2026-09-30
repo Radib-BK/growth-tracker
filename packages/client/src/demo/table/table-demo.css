@@ -47,9 +47,11 @@
 }
 
 /* Pinned columns set `position: sticky` inline, which would drop them below
-   the header. Lift the header's own pinned cells back on top. */
+   the header. Lift the header's own pinned cells back on top. !important
+   because pinStyles() also sets a low z-index inline, and inline beats this
+   rule - without it the scrolling headers slide over the pinned ones. */
 .tbl-demo thead th[style*="position: sticky"] {
-  z-index: 4;
+  z-index: 4 !important;
 }
 
 /* The hairline under the header survives scrolling, unlike a border on a

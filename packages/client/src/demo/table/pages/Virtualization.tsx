@@ -51,6 +51,7 @@ export default function Virtualization() {
   });
 
   const virtualRows = rowVirtualizer.getVirtualItems();
+  // console.log("virtualRows", rows[virtualRows[2].index]);
 
   return (
     <div className="pb-15">
